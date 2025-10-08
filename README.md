@@ -143,8 +143,10 @@ pnpm db:studio            # Open Drizzle Studio (database GUI)
 ```
 
 **Documentation:**
-- [Drizzle ORM Guide](./docs/DRIZZLE_GUIDE.md) - Complete Drizzle usage guide
-- [Database Architecture](./docs/DATABASE_ARCHITECTURE.md) - How Supabase and Drizzle work together
+- 📖 [Development Workflow](./docs/DEVELOPMENT_WORKFLOW.md) - **Start here!** Day-to-day development guide
+- 🏗️ [Database Architecture](./docs/DATABASE_ARCHITECTURE.md) - How Supabase and Drizzle work together
+- 📚 [Drizzle ORM Guide](./docs/DRIZZLE_GUIDE.md) - Complete Drizzle API reference
+- 🔧 [Setup Troubleshooting](./docs/SETUP_TROUBLESHOOTING.md) - Fix common setup issues
 
 ### Requirements
 

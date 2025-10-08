@@ -27,7 +27,21 @@ pnpm supabase:status     # Check Supabase status
 pnpm supabase:stop       # Stop Supabase containers
 ```
 
-See [`scripts/README.md`](./scripts/README.md) for detailed information about setup scripts.
+### Daily Development
+
+Once setup is complete, check out the workflow guide:
+
+📖 **[Development Workflow Guide](./docs/DEVELOPMENT_WORKFLOW.md)** - Complete day-to-day development guide covering:
+- Database schema development with Drizzle
+- Working with Supabase Auth and Storage
+- Query patterns and best practices
+- Migration workflow for production
+
+### More Resources
+
+- [`scripts/README.md`](./scripts/README.md) - Setup script documentation
+- [`docs/DATABASE_ARCHITECTURE.md`](./docs/DATABASE_ARCHITECTURE.md) - How Supabase + Drizzle work together
+- [`docs/DRIZZLE_GUIDE.md`](./docs/DRIZZLE_GUIDE.md) - Complete Drizzle ORM reference
 
 ## Commit Message Guidelines
 

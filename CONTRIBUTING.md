@@ -1,5 +1,34 @@
 # Contributing to Bitcraft Nexus
 
+## Getting Started
+
+### Quick Setup
+
+This project features an automated setup that runs after `pnpm install`:
+
+```bash
+git clone <repo-url>
+cd bitcraft-nexus
+pnpm install  # Automatically sets up Supabase and other dependencies
+pnpm dev      # Start development server
+```
+
+The postinstall script will:
+1. Initialize Supabase local development environment
+2. Start Supabase containers
+3. Generate `.env.local` with local credentials
+4. Any other setup tasks configured in the future
+
+If you need to manually run setup tasks:
+
+```bash
+pnpm run setup:supabase  # Setup Supabase only
+pnpm supabase:status     # Check Supabase status
+pnpm supabase:stop       # Stop Supabase containers
+```
+
+See [`scripts/README.md`](./scripts/README.md) for detailed information about setup scripts.
+
 ## Commit Message Guidelines
 
 This project follows the [Conventional Commits](https://www.conventionalcommits.org/) specification. All commit messages will be validated automatically using commitlint.

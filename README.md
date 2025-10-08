@@ -27,10 +27,13 @@
   - Client
   - Server
   - It just works!
-- supabase-ssr. A package to configure Supabase Auth to use cookies
+- **[Drizzle ORM](https://orm.drizzle.team/)** - Type-safe database queries with PostgreSQL
+- **supabase-ssr** - A package to configure Supabase Auth to use cookies
+- **Automated local setup** - Run `pnpm install` and you're ready to code
 - Password-based authentication block installed via the [Supabase UI Library](https://supabase.com/ui/docs/nextjs/password-based-auth)
 - Styling with [Tailwind CSS](https://tailwindcss.com)
 - Components with [shadcn/ui](https://ui.shadcn.com/)
+- **Conventional Commits** enforcement with commitlint and husky
 - Optional deployment with [Supabase Vercel Integration and Vercel deploy](#deploy-your-own)
   - Environment variables automatically assigned to Vercel project
 
@@ -52,48 +55,104 @@ If you wish to just develop locally and not deploy to Vercel, [follow the steps 
 
 ## Clone and run locally
 
-1. You'll first need a Supabase project which can be made [via the Supabase dashboard](https://database.new)
+### Automated Setup (Recommended)
 
-2. Create a Next.js app using the Supabase Starter template npx command
+This project features automated local development setup with Supabase:
 
-   ```bash
-   npx create-next-app --example with-supabase with-supabase-app
-   ```
+1. **Clone the repository**
 
    ```bash
-   yarn create next-app --example with-supabase with-supabase-app
+   git clone <repository-url>
+   cd bitcraft-nexus
    ```
+
+2. **Install dependencies** (this automatically sets everything up!)
 
    ```bash
-   pnpm create next-app --example with-supabase with-supabase-app
+   pnpm install
    ```
 
-3. Use `cd` to change into the app's directory
+   The postinstall script will automatically:
+   - Initialize Supabase local development
+   - Start Supabase containers (Docker required)
+   - Generate `.env.local` with local credentials
+   - Set up any other configured dependencies
+
+3. **Start the development server**
 
    ```bash
-   cd with-supabase-app
+   pnpm dev
    ```
 
-4. Rename `.env.example` to `.env.local` and update the following:
+   The app should now be running on [localhost:3000](http://localhost:3000/).
 
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=[INSERT SUPABASE PROJECT URL]
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=[INSERT SUPABASE PROJECT API ANON KEY]
-   ```
+4. **Access Supabase Studio** (optional)
 
-   Both `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` can be found in [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
+   Visit [http://127.0.0.1:54323](http://127.0.0.1:54323) to manage your local database.
 
-5. You can now run the Next.js local development server:
+### Manual Setup (Alternative)
+
+If you prefer manual setup or the automated setup fails:
+
+1. Clone the repository and install dependencies:
 
    ```bash
-   npm run dev
+   git clone <repository-url>
+   cd bitcraft-nexus
+   pnpm install --ignore-scripts
    ```
 
-   The starter kit should now be running on [localhost:3000](http://localhost:3000/).
+2. Set up Supabase manually:
 
-6. This template comes with the default shadcn/ui style initialized. If you instead want other ui.shadcn styles, delete `components.json` and [re-install shadcn/ui](https://ui.shadcn.com/docs/installation/next)
+   ```bash
+   pnpm run setup:supabase
+   ```
 
-> Check out [the docs for Local Development](https://supabase.com/docs/guides/getting-started/local-development) to also run Supabase locally.
+   Or connect to a cloud Supabase project by creating `.env.local`:
+
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=[YOUR_SUPABASE_PROJECT_URL]
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=[YOUR_SUPABASE_ANON_KEY]
+   ```
+
+   Get these values from [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
+
+3. Start the development server:
+
+   ```bash
+   pnpm dev
+   ```
+
+### Useful Commands
+
+```bash
+# Development
+pnpm dev                  # Start Next.js dev server
+
+# Supabase
+pnpm supabase:status      # Check Supabase status
+pnpm supabase:stop        # Stop Supabase containers
+pnpm supabase:restart     # Restart Supabase containers
+pnpm supabase:reset       # Reset database to initial state
+pnpm run setup:supabase   # Re-run Supabase setup
+
+# Drizzle ORM
+pnpm db:generate          # Generate migrations from schema
+pnpm db:push              # Push schema to database
+pnpm db:studio            # Open Drizzle Studio (database GUI)
+```
+
+**Documentation:**
+- [Drizzle ORM Guide](./docs/DRIZZLE_GUIDE.md) - Complete Drizzle usage guide
+- [Database Architecture](./docs/DATABASE_ARCHITECTURE.md) - How Supabase and Drizzle work together
+
+### Requirements
+
+- **Node.js** 20+ and **pnpm**
+- **Docker** (for local Supabase development)
+- **Git**
+
+> Check out [the docs for Local Development](https://supabase.com/docs/guides/getting-started/local-development) to learn more about Supabase locally.
 
 ## Contributing
 

@@ -2,17 +2,44 @@
 
 import { useEffect, useState } from 'react';
 
+interface SchemaTable {
+    name: string;
+    table_access?: { Public?: boolean };
+    product_type_ref?: number;
+}
+
+interface SchemaElement {
+    name?: { some: string };
+}
+
+interface SchemaType {
+    Product?: {
+        elements?: SchemaElement[];
+    };
+}
+
+interface SchemaData {
+    V9?: {
+        tables?: SchemaTable[];
+        typespace?: {
+            types?: SchemaType[];
+        };
+    };
+    tables?: SchemaTable[];
+    typespace?: {
+        types?: SchemaType[];
+    };
+}
+
 export default function SQLExplorerPage() {
-    const [schema, setSchema] = useState<any>(null);
-    const [authToken, setAuthToken] = useState<string>('');
+    const [schema, setSchema] = useState<SchemaData | null>(null);
     const [tables, setTables] = useState<string[]>([]);
     const [selectedTable, setSelectedTable] = useState<string>('');
     const [selectedColumn, setSelectedColumn] = useState<string>('ALL');
     const [queryValue, setQueryValue] = useState<string>('');
-    const [results, setResults] = useState<any[]>([]);
+    const [results] = useState<Record<string, unknown>[]>([]);
     const [status, setStatus] = useState<string>('Loading...');
     const [currentPage, setCurrentPage] = useState<number>(0);
-    const [wsClient, setWsClient] = useState<any>(null);
 
     const pageSize = 10;
     const totalPages = Math.ceil(results.length / pageSize);
@@ -23,21 +50,20 @@ export default function SQLExplorerPage() {
             fetch('/api/schema').then(res => res.json()),
             fetch('/api/auth-token').then(res => res.text())
         ])
-            .then(([schemaData, token]) => {
+            .then(([schemaData]) => {
                 setSchema(schemaData);
-                setAuthToken(token.trim());
 
                 // Extract public tables from V9 schema
                 const v9Schema = schemaData?.V9 || schemaData;
                 const publicTables = v9Schema?.tables
-                    ?.filter((t: any) => t.table_access?.Public)
-                    ?.map((t: any) => t.name)
+                    ?.filter((t) => t.table_access?.Public)
+                    ?.map((t) => t.name)
                     ?.sort() || [];
 
                 setTables(publicTables);
                 setStatus('Ready. Choose a table to query.');
             })
-            .catch(error => {
+            .catch((error: Error) => {
                 setStatus(`Error loading: ${error.message}`);
             });
     }, []);
@@ -173,9 +199,11 @@ export default function SQLExplorerPage() {
     );
 }
 
-function getTableColumns(schema: any, tableName: string): string[] {
-    const v9Schema = schema?.V9 || schema;
-    const table = v9Schema?.tables?.find((t: any) => t.name === tableName);
+function getTableColumns(schema: SchemaData | null, tableName: string): string[] {
+    if (!schema) return [];
+    
+    const v9Schema = schema.V9 || schema;
+    const table = v9Schema?.tables?.find((t) => t.name === tableName);
     if (!table || table.product_type_ref == null) return [];
 
     const typeRef = table.product_type_ref;
@@ -184,7 +212,7 @@ function getTableColumns(schema: any, tableName: string): string[] {
     if (!types[typeRef]?.Product?.elements) return [];
 
     return types[typeRef].Product.elements
-        .map((el: any) => el.name?.some)
-        .filter(Boolean);
+        .map((el) => el.name?.some)
+        .filter((name): name is string => Boolean(name));
 }
 

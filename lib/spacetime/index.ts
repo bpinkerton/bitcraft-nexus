@@ -1,4 +1,4 @@
-import { DbConnection, ServerIdentity } from "@/spacetime_bindings";
+import { DbConnection } from "@/spacetime_bindings";
 
 export const getDbConnection = () => {
     console.log('Getting DB connection');

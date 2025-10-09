@@ -16,6 +16,7 @@ export async function GET() {
         const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf-8'));
         return NextResponse.json(schema);
     } catch (error) {
+        console.error('Failed to load schema', error);
         return NextResponse.json(
             { error: 'Failed to load schema' },
             { status: 500 }

@@ -1,5 +1,7 @@
 {
-    "recommendations": [
-        "vivaxy.vscode-conventional-commits"
-    ]
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode"
+  ]
 }

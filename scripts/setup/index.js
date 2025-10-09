@@ -112,6 +112,7 @@ async function runPostInstall() {
             });
         console.log();
     }
+    process.exit(0);
 }
 
 // Run if called directly

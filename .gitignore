@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/spacetime_bindings
 /.pnp
 .pnp.*
 .yarn/*

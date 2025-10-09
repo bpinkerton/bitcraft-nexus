@@ -17,6 +17,7 @@ const fs = require('fs');
 
 // Import setup modules
 const { setupSupabase } = require('./supabase');
+const { setupSpacetime } = require('./spacetime');
 
 // Define setup tasks
 const SETUP_TASKS = [
@@ -25,6 +26,12 @@ const SETUP_TASKS = [
         fn: setupSupabase,
         options: { skipIfExists: true },
         required: false, // If true, postinstall will fail if this task fails
+    },
+    {
+        name: 'SpacetimeDB',
+        fn: setupSpacetime,
+        options: { skipIfExists: true },
+        required: false,
     },
     // Add more setup tasks here in the future:
     // {

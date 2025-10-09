@@ -34,7 +34,7 @@ async function setupSupabase(options = {}) {
         console.log('🔧 Initializing Supabase...');
         try {
             execSync('pnpx supabase init', {
-                stdio: 'inherit',
+                stdio: 'pipe',
                 cwd: path.join(__dirname, '..', '..')
             });
             console.log('✅ Supabase initialized\n');
@@ -54,10 +54,8 @@ async function setupSupabase(options = {}) {
         const output = execSync('pnpx supabase start', {
             cwd: path.join(__dirname, '..', '..'),
             encoding: 'utf-8',
-            stdio: ['pipe', 'pipe', 'inherit']
+            stdio: 'pipe'
         });
-
-        console.log(output);
 
         // Parse the output to extract credentials
         const apiUrlMatch = output.match(/API URL: (http:\/\/[^\s]+)/);

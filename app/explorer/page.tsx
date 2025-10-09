@@ -74,19 +74,24 @@ export default function SQLExplorerPage() {
             return;
         }
 
-        // Build query
-        let query = `SELECT * FROM ${selectedTable}`;
+        // Build a parameterized query for display; never inline user input
+        const params: unknown[] = [];
+        let queryText = `SELECT * FROM ${quoteIdentifier(selectedTable)}`;
 
         if (selectedColumn !== 'ALL' && queryValue) {
-            query += ` WHERE "${selectedColumn}" = '${queryValue.replace(/'/g, "''")}'`;
+            queryText += ` WHERE ${quoteIdentifier(selectedColumn)} = ?`;
+            params.push(queryValue);
         }
 
-        query += ';';
+        queryText += ';';
 
         setStatus('Querying...');
         // Here you would connect to SpacetimeDB WebSocket
-        // For now, just show a message
-        setStatus(`Would execute: ${query}`);
+        // For now, just show a message with placeholders and params
+        const display = params.length > 0
+            ? `${queryText} Params: ${JSON.stringify(params)}`
+            : queryText;
+        setStatus(`Would execute: ${display}`);
     };
 
     const columns = selectedTable && schema
@@ -214,5 +219,9 @@ function getTableColumns(schema: SchemaData | null, tableName: string): string[]
     return types[typeRef].Product.elements
         .map((el) => el.name?.some)
         .filter((name): name is string => Boolean(name));
+}
+
+function quoteIdentifier(identifier: string): string {
+    return `"${identifier.replace(/"/g, '""')}"`;
 }
 

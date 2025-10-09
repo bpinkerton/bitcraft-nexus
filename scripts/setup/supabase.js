@@ -8,6 +8,63 @@ const ENV_FILE = path.join(__dirname, '..', '..', '.env.local');
 const SUPABASE_DIR = path.join(__dirname, '..', '..', 'supabase');
 
 /**
+ * Removes a previously inserted "Supabase Local Development" block from a .env file
+ * without accidentally deleting unrelated variables or comments.
+ * The block is identified by the header line:
+ *   # Supabase Local Development
+ * and includes only known Supabase-related comments and variables written by this script.
+ */
+function removeOldSupabaseConfig(content) {
+    if (!content) return content;
+
+    const isSupabaseComment = (line) => {
+        const trimmed = line.trim();
+        return (
+            trimmed.startsWith('# Supabase') ||
+            trimmed.startsWith('# Generated automatically') ||
+            trimmed.startsWith('# Supabase API') ||
+            trimmed.startsWith('# Database connection') ||
+            trimmed.startsWith('# This connects directly')
+        );
+    };
+
+    const isSupabaseEnvVar = (line) =>
+        /^NEXT_PUBLIC_SUPABASE_URL=/.test(line) ||
+        /^NEXT_PUBLIC_SUPABASE_ANON_KEY=/.test(line) ||
+        /^DATABASE_URL=/.test(line);
+
+    let text = content;
+    // Remove all occurrences if the block is duplicated
+    // Loop until no more Supabase block headers are found
+    // to ensure idempotency across runs.
+    // No heavy regexes that can overmatch.
+    while (true) {
+        const lines = text.split(/\r?\n/);
+        const startIdx = lines.findIndex((line) => line.trim() === '# Supabase Local Development');
+        if (startIdx === -1) break;
+
+        let endIdx = startIdx + 1;
+        while (endIdx < lines.length) {
+            const current = lines[endIdx];
+            if (
+                current.trim() === '' ||
+                isSupabaseComment(current) ||
+                isSupabaseEnvVar(current)
+            ) {
+                endIdx += 1;
+                continue;
+            }
+            break;
+        }
+
+        lines.splice(startIdx, endIdx - startIdx);
+        text = lines.join('\n').replace(/\n{3,}/g, '\n\n');
+    }
+
+    return text;
+}
+
+/**
  * Sets up Supabase local development environment
  * @param {Object} options - Setup options
  * @param {boolean} options.skipIfExists - Skip if .env.local already exists
@@ -72,8 +129,8 @@ async function setupSupabase(options = {}) {
             if (fs.existsSync(ENV_FILE)) {
                 envContent = fs.readFileSync(ENV_FILE, 'utf-8');
 
-                // Remove old Supabase config if exists
-                envContent = envContent.replace(/# Supabase Local Development[\s\S]*?(?=\n#|\n[A-Z]|$)/g, '');
+                // Remove old Supabase config if it exists (safe, bounded)
+                envContent = removeOldSupabaseConfig(envContent);
             }
 
             // Add Supabase config

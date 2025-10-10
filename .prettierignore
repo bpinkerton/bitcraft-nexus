@@ -11,6 +11,7 @@ node_modules/
 .next/
 .specify/
 .vscode/
+*.md
 
 spacetime_bindings/
 specs/

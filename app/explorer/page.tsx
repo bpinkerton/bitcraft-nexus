@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
 interface SchemaTable {
     name: string;
@@ -34,11 +34,11 @@ interface SchemaData {
 export default function SQLExplorerPage() {
     const [schema, setSchema] = useState<SchemaData | null>(null);
     const [tables, setTables] = useState<string[]>([]);
-    const [selectedTable, setSelectedTable] = useState<string>('');
-    const [selectedColumn, setSelectedColumn] = useState<string>('ALL');
-    const [queryValue, setQueryValue] = useState<string>('');
+    const [selectedTable, setSelectedTable] = useState<string>("");
+    const [selectedColumn, setSelectedColumn] = useState<string>("ALL");
+    const [queryValue, setQueryValue] = useState<string>("");
     const [results] = useState<Record<string, unknown>[]>([]);
-    const [status, setStatus] = useState<string>('Loading...');
+    const [status, setStatus] = useState<string>("Loading...");
     const [currentPage, setCurrentPage] = useState<number>(0);
 
     const pageSize = 10;
@@ -47,21 +47,22 @@ export default function SQLExplorerPage() {
     useEffect(() => {
         // Load schema and auth token
         Promise.all([
-            fetch('/api/schema').then(res => res.json()),
-            fetch('/api/auth-token').then(res => res.text())
+            fetch("/api/schema").then(res => res.json()),
+            fetch("/api/auth-token").then(res => res.text()),
         ])
             .then(([schemaData]) => {
                 setSchema(schemaData);
 
                 // Extract public tables from V9 schema
                 const v9Schema = schemaData?.V9 || schemaData;
-                const publicTables = v9Schema?.tables
-                    ?.filter((t) => t.table_access?.Public)
-                    ?.map((t) => t.name)
-                    ?.sort() || [];
+                const publicTables =
+                    v9Schema?.tables
+                        ?.filter(t => t.table_access?.Public)
+                        ?.map(t => t.name)
+                        ?.sort() || [];
 
                 setTables(publicTables);
-                setStatus('Ready. Choose a table to query.');
+                setStatus("Ready. Choose a table to query.");
             })
             .catch((error: Error) => {
                 setStatus(`Error loading: ${error.message}`);
@@ -70,7 +71,7 @@ export default function SQLExplorerPage() {
 
     const handleQuery = () => {
         if (!selectedTable) {
-            setStatus('Please select a table first.');
+            setStatus("Please select a table first.");
             return;
         }
 
@@ -78,25 +79,25 @@ export default function SQLExplorerPage() {
         const params: unknown[] = [];
         let queryText = `SELECT * FROM ${quoteIdentifier(selectedTable)}`;
 
-        if (selectedColumn !== 'ALL' && queryValue) {
+        if (selectedColumn !== "ALL" && queryValue) {
             queryText += ` WHERE ${quoteIdentifier(selectedColumn)} = ?`;
             params.push(queryValue);
         }
 
-        queryText += ';';
+        queryText += ";";
 
-        setStatus('Querying...');
+        setStatus("Querying...");
         // Here you would connect to SpacetimeDB WebSocket
         // For now, just show a message with placeholders and params
-        const display = params.length > 0
-            ? `${queryText} Params: ${JSON.stringify(params)}`
-            : queryText;
+        const display =
+            params.length > 0
+                ? `${queryText} Params: ${JSON.stringify(params)}`
+                : queryText;
         setStatus(`Would execute: ${display}`);
     };
 
-    const columns = selectedTable && schema
-        ? getTableColumns(schema, selectedTable)
-        : [];
+    const columns =
+        selectedTable && schema ? getTableColumns(schema, selectedTable) : [];
 
     const paginatedResults = results.slice(
         currentPage * pageSize,
@@ -114,37 +115,41 @@ export default function SQLExplorerPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
                     <select
                         value={selectedTable}
-                        onChange={(e) => {
+                        onChange={e => {
                             setSelectedTable(e.target.value);
-                            setSelectedColumn('ALL');
-                            setQueryValue('');
+                            setSelectedColumn("ALL");
+                            setQueryValue("");
                         }}
                         className="bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 focus:ring-cyan-500 focus:border-cyan-500"
                     >
                         <option value="">Choose a table</option>
                         {tables.map(table => (
-                            <option key={table} value={table}>{table}</option>
+                            <option key={table} value={table}>
+                                {table}
+                            </option>
                         ))}
                     </select>
 
                     <select
                         value={selectedColumn}
-                        onChange={(e) => setSelectedColumn(e.target.value)}
+                        onChange={e => setSelectedColumn(e.target.value)}
                         className="bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 focus:ring-cyan-500 focus:border-cyan-500"
                         disabled={!selectedTable}
                     >
                         <option value="ALL">ALL</option>
                         {columns.map(col => (
-                            <option key={col} value={col}>{col}</option>
+                            <option key={col} value={col}>
+                                {col}
+                            </option>
                         ))}
                     </select>
 
                     <input
                         type="text"
                         value={queryValue}
-                        onChange={(e) => setQueryValue(e.target.value)}
+                        onChange={e => setQueryValue(e.target.value)}
                         placeholder="Enter value..."
-                        disabled={selectedColumn === 'ALL'}
+                        disabled={selectedColumn === "ALL"}
                         className="bg-gray-700 border border-gray-600 text-white rounded-lg p-2.5 disabled:opacity-50"
                     />
 
@@ -162,7 +167,10 @@ export default function SQLExplorerPage() {
                     <pre className="text-sm whitespace-pre-wrap">
                         {results.length > 0 ? (
                             paginatedResults.map((row, i) => (
-                                <div key={i} className="mb-4 border-b border-gray-700 pb-2">
+                                <div
+                                    key={i}
+                                    className="mb-4 border-b border-gray-700 pb-2"
+                                >
                                     {JSON.stringify(row, null, 2)}
                                 </div>
                             ))
@@ -176,7 +184,9 @@ export default function SQLExplorerPage() {
                 {results.length > 0 && (
                     <div className="flex justify-between items-center mt-4">
                         <button
-                            onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+                            onClick={() =>
+                                setCurrentPage(p => Math.max(0, p - 1))
+                            }
                             disabled={currentPage === 0}
                             className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
                         >
@@ -186,7 +196,11 @@ export default function SQLExplorerPage() {
                             Page {currentPage + 1} of {totalPages}
                         </span>
                         <button
-                            onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+                            onClick={() =>
+                                setCurrentPage(p =>
+                                    Math.min(totalPages - 1, p + 1)
+                                )
+                            }
                             disabled={currentPage >= totalPages - 1}
                             className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition-colors disabled:opacity-50"
                         >
@@ -204,11 +218,14 @@ export default function SQLExplorerPage() {
     );
 }
 
-function getTableColumns(schema: SchemaData | null, tableName: string): string[] {
+function getTableColumns(
+    schema: SchemaData | null,
+    tableName: string
+): string[] {
     if (!schema) return [];
-    
+
     const v9Schema = schema.V9 || schema;
-    const table = v9Schema?.tables?.find((t) => t.name === tableName);
+    const table = v9Schema?.tables?.find(t => t.name === tableName);
     if (!table || table.product_type_ref == null) return [];
 
     const typeRef = table.product_type_ref;
@@ -217,11 +234,10 @@ function getTableColumns(schema: SchemaData | null, tableName: string): string[]
     if (!types[typeRef]?.Product?.elements) return [];
 
     return types[typeRef].Product.elements
-        .map((el) => el.name?.some)
+        .map(el => el.name?.some)
         .filter((name): name is string => Boolean(name));
 }
 
 function quoteIdentifier(identifier: string): string {
     return `"${identifier.replace(/"/g, '""')}"`;
 }
-

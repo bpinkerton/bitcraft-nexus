@@ -5,4 +5,3 @@ export default function ExplorerLayout({
 }) {
     return children;
 }
-

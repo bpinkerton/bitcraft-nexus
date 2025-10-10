@@ -21,12 +21,12 @@
 ## Features
 
 - Works across the entire [Next.js](https://nextjs.org) stack
-  - App Router
-  - Pages Router
-  - Middleware
-  - Client
-  - Server
-  - It just works!
+    - App Router
+    - Pages Router
+    - Middleware
+    - Client
+    - Server
+    - It just works!
 - **[Drizzle ORM](https://orm.drizzle.team/)** - Type-safe database queries with PostgreSQL
 - **supabase-ssr** - A package to configure Supabase Auth to use cookies
 - **Automated local setup** - Run `pnpm install` and you're ready to code
@@ -35,7 +35,7 @@
 - Components with [shadcn/ui](https://ui.shadcn.com/)
 - **Conventional Commits** enforcement with commitlint and husky
 - Optional deployment with [Supabase Vercel Integration and Vercel deploy](#deploy-your-own)
-  - Environment variables automatically assigned to Vercel project
+    - Environment variables automatically assigned to Vercel project
 
 ## Demo
 
@@ -61,34 +61,34 @@ This project features automated local development setup with Supabase:
 
 1. **Clone the repository**
 
-   ```bash
-   git clone <repository-url>
-   cd bitcraft-nexus
-   ```
+    ```bash
+    git clone <repository-url>
+    cd bitcraft-nexus
+    ```
 
 2. **Install dependencies** (this automatically sets everything up!)
 
-   ```bash
-   pnpm install
-   ```
+    ```bash
+    pnpm install
+    ```
 
-   The postinstall script will automatically:
-   - Initialize Supabase local development
-   - Start Supabase containers (Docker required)
-   - Generate `.env.local` with local credentials
-   - Set up any other configured dependencies
+    The postinstall script will automatically:
+    - Initialize Supabase local development
+    - Start Supabase containers (Docker required)
+    - Generate `.env.local` with local credentials
+    - Set up any other configured dependencies
 
 3. **Start the development server**
 
-   ```bash
-   pnpm dev
-   ```
+    ```bash
+    pnpm dev
+    ```
 
-   The app should now be running on [localhost:3000](http://localhost:3000/).
+    The app should now be running on [localhost:3000](http://localhost:3000/).
 
 4. **Access Supabase Studio** (optional)
 
-   Visit [http://127.0.0.1:54323](http://127.0.0.1:54323) to manage your local database.
+    Visit [http://127.0.0.1:54323](http://127.0.0.1:54323) to manage your local database.
 
 ### Manual Setup (Alternative)
 
@@ -96,32 +96,32 @@ If you prefer manual setup or the automated setup fails:
 
 1. Clone the repository and install dependencies:
 
-   ```bash
-   git clone <repository-url>
-   cd bitcraft-nexus
-   pnpm install --ignore-scripts
-   ```
+    ```bash
+    git clone <repository-url>
+    cd bitcraft-nexus
+    pnpm install --ignore-scripts
+    ```
 
 2. Set up Supabase manually:
 
-   ```bash
-   pnpm run setup:supabase
-   ```
+    ```bash
+    pnpm run setup:supabase
+    ```
 
-   Or connect to a cloud Supabase project by creating `.env.local`:
+    Or connect to a cloud Supabase project by creating `.env.local`:
 
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=[YOUR_SUPABASE_PROJECT_URL]
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=[YOUR_SUPABASE_ANON_KEY]
-   ```
+    ```env
+    NEXT_PUBLIC_SUPABASE_URL=[YOUR_SUPABASE_PROJECT_URL]
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=[YOUR_SUPABASE_ANON_KEY]
+    ```
 
-   Get these values from [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
+    Get these values from [your Supabase project's API settings](https://supabase.com/dashboard/project/_?showConnect=true)
 
 3. Start the development server:
 
-   ```bash
-   pnpm dev
-   ```
+    ```bash
+    pnpm dev
+    ```
 
 ### Useful Commands
 
@@ -143,6 +143,7 @@ pnpm db:studio            # Open Drizzle Studio (database GUI)
 ```
 
 **Documentation:**
+
 - 📖 [Development Workflow](./docs/DEVELOPMENT_WORKFLOW.md) - **Start here!** Day-to-day development guide
 - 🏗️ [Database Architecture](./docs/DATABASE_ARCHITECTURE.md) - How Supabase and Drizzle work together
 - 📚 [Drizzle ORM Guide](./docs/DRIZZLE_GUIDE.md) - Complete Drizzle API reference

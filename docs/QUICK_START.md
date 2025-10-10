@@ -15,6 +15,7 @@ pnpm dev
 ```
 
 **That's it!** The postinstall script automatically:
+
 - ✅ Starts Supabase local instance
 - ✅ Generates `.env.local` with credentials
 - ✅ Configures database connections
@@ -27,13 +28,13 @@ pnpm dev
 **1. Define schema** (`lib/db/schema.ts`):
 
 ```typescript
-import { pgTable, serial, text, boolean, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, boolean, timestamp } from "drizzle-orm/pg-core";
 
-export const tasks = pgTable('tasks', {
-  id: serial('id').primaryKey(),
-  title: text('title').notNull(),
-  completed: boolean('completed').default(false),
-  createdAt: timestamp('created_at').defaultNow(),
+export const tasks = pgTable("tasks", {
+    id: serial("id").primaryKey(),
+    title: text("title").notNull(),
+    completed: boolean("completed").default(false),
+    createdAt: timestamp("created_at").defaultNow(),
 });
 ```
 
@@ -51,7 +52,7 @@ import { tasks } from '@/lib/db/schema';
 
 export default async function TasksPage() {
   const allTasks = await db.select().from(tasks);
-  
+
   return (
     <div>
       <h1>Tasks</h1>
@@ -73,30 +74,27 @@ export default async function TasksPage() {
 ### Pattern: Create with Server Action
 
 ```typescript
-'use server';
+"use server";
 
-import { db } from '@/lib/db';
-import { tasks } from '@/lib/db/schema';
-import { revalidatePath } from 'next/cache';
+import { db } from "@/lib/db";
+import { tasks } from "@/lib/db/schema";
+import { revalidatePath } from "next/cache";
 
 export async function createTask(formData: FormData) {
-  const title = formData.get('title') as string;
-  
-  await db.insert(tasks).values({ title });
-  
-  revalidatePath('/tasks');
+    const title = formData.get("title") as string;
+
+    await db.insert(tasks).values({ title });
+
+    revalidatePath("/tasks");
 }
 ```
 
 ### Pattern: Update
 
 ```typescript
-import { eq } from 'drizzle-orm';
+import { eq } from "drizzle-orm";
 
-await db
-  .update(tasks)
-  .set({ completed: true })
-  .where(eq(tasks.id, taskId));
+await db.update(tasks).set({ completed: true }).where(eq(tasks.id, taskId));
 ```
 
 ### Pattern: Delete
@@ -114,15 +112,15 @@ export default async function Page() {
   // Get authenticated user
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) redirect('/login');
-  
+
   // Query their data
   const userTasks = await db
     .select()
     .from(tasks)
     .where(eq(tasks.userId, user.id));
-  
+
   return <div>{/* ... */}</div>;
 }
 ```
@@ -156,13 +154,15 @@ pnpm supabase:start      # Start containers
 
 ```typescript
 // Drizzle = Type-safe queries
-import { db } from '@/lib/db';
+import { db } from "@/lib/db";
 const tasks = await db.select().from(tasks);
 
 // Supabase = Auth, Storage, Realtime
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from "@/lib/supabase/server";
 const supabase = await createClient();
-const { data: { user } } = await supabase.auth.getUser();
+const {
+    data: { user },
+} = await supabase.auth.getUser();
 ```
 
 Both connect to the **same PostgreSQL database**!
@@ -170,12 +170,14 @@ Both connect to the **same PostgreSQL database**!
 ### 2. Development vs Production
 
 **Development:**
+
 ```bash
 # Edit schema → Push → Test (no migration files)
 pnpm db:push
 ```
 
 **Production:**
+
 ```bash
 # Edit schema → Generate migration → Review → Commit
 pnpm db:generate
@@ -186,11 +188,13 @@ git commit -m "feat(db): add tasks table"
 ### 3. Server-Side Only
 
 Database queries work in:
+
 - ✅ Server Components
 - ✅ Server Actions
 - ✅ API Routes
 
 Not in client components:
+
 - ❌ `'use client'` components
 
 ## 🎨 Project Structure
@@ -231,6 +235,7 @@ bitcraft-nexus/
 ## 🎉 You're Ready!
 
 You now have:
+
 - ✅ Local Supabase running
 - ✅ Drizzle ORM configured
 - ✅ Type-safe database queries
@@ -238,4 +243,3 @@ You now have:
 - ✅ Conventional commits enforced
 
 Start building! 🚀
-

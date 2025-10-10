@@ -3,6 +3,7 @@
 ## Setup
 
 ### Generate schema
+
 ```bash
 curl -s \
   'https://bitcraft-early-access.spacetimedb.com/v1/database/bitcraft-global/schema?version=9' | \
@@ -11,6 +12,7 @@ curl -s \
 ```
 
 ### Generate bindings
+
 ```bash
 spacetime generate --lang typescript --out-dir spacetime_bindings --module-def spacetime_bindings/schema.json
 ```
@@ -18,3 +20,5 @@ spacetime generate --lang typescript --out-dir spacetime_bindings --module-def s
 ## Usage
 
 ```typescript
+
+```

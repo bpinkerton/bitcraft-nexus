@@ -14,6 +14,7 @@ pnpm dev      # Start development server
 ```
 
 The postinstall script will:
+
 1. Initialize Supabase local development environment
 2. Start Supabase containers
 3. Generate `.env.local` with local credentials
@@ -32,6 +33,7 @@ pnpm supabase:stop       # Stop Supabase containers
 Once setup is complete, check out the workflow guide:
 
 📖 **[Development Workflow Guide](./docs/DEVELOPMENT_WORKFLOW.md)** - Complete day-to-day development guide covering:
+
 - Database schema development with Drizzle
 - Working with Supabase Auth and Storage
 - Query patterns and best practices
@@ -136,4 +138,3 @@ Now when you run `git commit` (without the `-m` flag), your editor will open wit
 ### VSCode Extension
 
 For an even better experience, we recommend installing the [Conventional Commits VSCode extension](https://marketplace.visualstudio.com/items?itemName=vivaxy.vscode-conventional-commits). This extension is already listed in `.vscode/extensions.json`, so VSCode should prompt you to install it.
-

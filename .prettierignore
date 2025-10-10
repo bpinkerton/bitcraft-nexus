@@ -1,0 +1,22 @@
+# Build outputs
+dist/
+build/
+coverage/
+
+# Dependencies
+node_modules/
+.claude/
+.github/
+.husky/
+.next/
+.specify/
+.vscode/
+*.md
+
+spacetime_bindings/
+specs/
+
+# Lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

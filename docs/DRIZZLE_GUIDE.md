@@ -5,6 +5,7 @@ This project uses [Drizzle ORM](https://orm.drizzle.team/) for type-safe databas
 ## Overview
 
 **Drizzle ORM** provides:
+
 - 🔒 Type-safe database queries
 - 🚀 Excellent performance (no bloat)
 - 📝 SQL-like syntax
@@ -12,6 +13,7 @@ This project uses [Drizzle ORM](https://orm.drizzle.team/) for type-safe databas
 - 🛠️ Database introspection and studio
 
 **Architecture:**
+
 - Supabase provides the PostgreSQL database
 - Drizzle ORM handles schema and queries
 - Both can work together seamlessly
@@ -19,6 +21,7 @@ This project uses [Drizzle ORM](https://orm.drizzle.team/) for type-safe databas
 ## Setup
 
 The setup is **automatic** when you run `pnpm install`. The postinstall script:
+
 1. Sets up Supabase local instance
 2. Generates `.env.local` with database credentials
 3. Configures connection for both Supabase client and Drizzle
@@ -46,24 +49,31 @@ DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
 Edit `lib/db/schema.ts`:
 
 ```typescript
-import { pgTable, serial, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+    pgTable,
+    serial,
+    text,
+    timestamp,
+    uuid,
+    varchar,
+} from "drizzle-orm/pg-core";
 
-export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  email: varchar('email', { length: 255 }).notNull().unique(),
-  name: text('name'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+export const users = pgTable("users", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: varchar("email", { length: 255 }).notNull().unique(),
+    name: text("name"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const posts = pgTable('posts', {
-  id: serial('id').primaryKey(),
-  title: varchar('title', { length: 255 }).notNull(),
-  content: text('content'),
-  authorId: uuid('author_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+export const posts = pgTable("posts", {
+    id: serial("id").primaryKey(),
+    title: varchar("title", { length: 255 }).notNull(),
+    content: text("content"),
+    authorId: uuid("author_id")
+        .notNull()
+        .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 ```
 
@@ -80,11 +90,13 @@ This creates a SQL migration file in `supabase/migrations/`.
 You have two options:
 
 **Option A: Push directly to database** (recommended for development)
+
 ```bash
 pnpm db:push
 ```
 
 **Option B: Use Supabase migration system**
+
 ```bash
 pnpm supabase:reset  # Applies all migrations
 ```
@@ -92,41 +104,39 @@ pnpm supabase:reset  # Applies all migrations
 ### 4. Use in Your App
 
 ```typescript
-import { db } from '@/lib/db';
-import { users, posts } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { db } from "@/lib/db";
+import { users, posts } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 // Insert
-const newUser = await db.insert(users).values({
-  email: 'user@example.com',
-  name: 'John Doe',
-}).returning();
+const newUser = await db
+    .insert(users)
+    .values({
+        email: "user@example.com",
+        name: "John Doe",
+    })
+    .returning();
 
 // Select
 const allUsers = await db.select().from(users);
 
 // Select with where
 const user = await db
-  .select()
-  .from(users)
-  .where(eq(users.email, 'user@example.com'));
+    .select()
+    .from(users)
+    .where(eq(users.email, "user@example.com"));
 
 // Join
 const postsWithAuthors = await db
-  .select()
-  .from(posts)
-  .leftJoin(users, eq(posts.authorId, users.id));
+    .select()
+    .from(posts)
+    .leftJoin(users, eq(posts.authorId, users.id));
 
 // Update
-await db
-  .update(users)
-  .set({ name: 'Jane Doe' })
-  .where(eq(users.id, userId));
+await db.update(users).set({ name: "Jane Doe" }).where(eq(users.id, userId));
 
 // Delete
-await db
-  .delete(users)
-  .where(eq(users.id, userId));
+await db.delete(users).where(eq(users.id, userId));
 ```
 
 ## Available Commands
@@ -194,54 +204,58 @@ Full Supabase dashboard:
 ### Relations
 
 ```typescript
-import { relations } from 'drizzle-orm';
+import { relations } from "drizzle-orm";
 
 export const usersRelations = relations(users, ({ many }) => ({
-  posts: many(posts),
+    posts: many(posts),
 }));
 
 export const postsRelations = relations(posts, ({ one }) => ({
-  author: one(users, {
-    fields: [posts.authorId],
-    references: [users.id],
-  }),
+    author: one(users, {
+        fields: [posts.authorId],
+        references: [users.id],
+    }),
 }));
 ```
 
 ### Indexes
 
 ```typescript
-import { index } from 'drizzle-orm/pg-core';
+import { index } from "drizzle-orm/pg-core";
 
-export const posts = pgTable('posts', {
-  // ... columns
-}, (table) => ({
-  authorIdx: index('author_idx').on(table.authorId),
-  titleIdx: index('title_idx').on(table.title),
-}));
+export const posts = pgTable(
+    "posts",
+    {
+        // ... columns
+    },
+    table => ({
+        authorIdx: index("author_idx").on(table.authorId),
+        titleIdx: index("title_idx").on(table.title),
+    })
+);
 ```
 
 ### Enums
 
 ```typescript
-import { pgEnum } from 'drizzle-orm/pg-core';
+import { pgEnum } from "drizzle-orm/pg-core";
 
-export const roleEnum = pgEnum('role', ['admin', 'user', 'guest']);
+export const roleEnum = pgEnum("role", ["admin", "user", "guest"]);
 
-export const users = pgTable('users', {
-  id: uuid('id').primaryKey(),
-  role: roleEnum('role').default('user').notNull(),
+export const users = pgTable("users", {
+    id: uuid("id").primaryKey(),
+    role: roleEnum("role").default("user").notNull(),
 });
 ```
 
 ### Default Values
 
 ```typescript
-export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  isActive: boolean('is_active').default(true).notNull(),
-  credits: integer('credits').default(100),
+export const users = pgTable("users", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    credits: integer("credits").default(100),
 });
 ```
 
@@ -250,27 +264,27 @@ export const users = pgTable('users', {
 Drizzle works alongside Supabase Auth. The `auth.users` table is managed by Supabase, but you can reference it:
 
 ```typescript
-export const profiles = pgTable('profiles', {
-  id: uuid('id').primaryKey(),
-  // This references the Supabase auth.users table
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => users.id, { onDelete: 'cascade' }),
-  bio: text('bio'),
-  avatarUrl: text('avatar_url'),
+export const profiles = pgTable("profiles", {
+    id: uuid("id").primaryKey(),
+    // This references the Supabase auth.users table
+    userId: uuid("user_id")
+        .notNull()
+        .references(() => users.id, { onDelete: "cascade" }),
+    bio: text("bio"),
+    avatarUrl: text("avatar_url"),
 });
 ```
 
 Or create a custom users table for app-specific data:
 
 ```typescript
-export const userProfiles = pgTable('user_profiles', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  // Store Supabase auth user ID
-  authUserId: uuid('auth_user_id').notNull().unique(),
-  // Your custom fields
-  displayName: text('display_name'),
-  preferences: jsonb('preferences'),
+export const userProfiles = pgTable("user_profiles", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Store Supabase auth user ID
+    authUserId: uuid("auth_user_id").notNull().unique(),
+    // Your custom fields
+    displayName: text("display_name"),
+    preferences: jsonb("preferences"),
 });
 ```
 
@@ -285,7 +299,7 @@ import { users } from '@/lib/db/schema';
 
 export default async function UsersPage() {
   const allUsers = await db.select().from(users);
-  
+
   return (
     <div>
       {allUsers.map(user => (
@@ -299,22 +313,22 @@ export default async function UsersPage() {
 ### Server Actions
 
 ```typescript
-'use server';
+"use server";
 
-import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { revalidatePath } from 'next/cache';
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { revalidatePath } from "next/cache";
 
 export async function createUser(formData: FormData) {
-  const email = formData.get('email') as string;
-  const name = formData.get('name') as string;
-  
-  await db.insert(users).values({
-    email,
-    name,
-  });
-  
-  revalidatePath('/users');
+    const email = formData.get("email") as string;
+    const name = formData.get("name") as string;
+
+    await db.insert(users).values({
+        email,
+        name,
+    });
+
+    revalidatePath("/users");
 }
 ```
 
@@ -322,21 +336,21 @@ export async function createUser(formData: FormData) {
 
 ```typescript
 // app/api/users/route.ts
-import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
-import { NextResponse } from 'next/server';
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
+import { NextResponse } from "next/server";
 
 export async function GET() {
-  const allUsers = await db.select().from(users);
-  return NextResponse.json(allUsers);
+    const allUsers = await db.select().from(users);
+    return NextResponse.json(allUsers);
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  
-  const newUser = await db.insert(users).values(body).returning();
-  
-  return NextResponse.json(newUser[0]);
+    const body = await request.json();
+
+    const newUser = await db.insert(users).values(body).returning();
+
+    return NextResponse.json(newUser[0]);
 }
 ```
 
@@ -345,8 +359,8 @@ export async function POST(request: Request) {
 Drizzle automatically generates types:
 
 ```typescript
-import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
-import { users, posts } from '@/lib/db/schema';
+import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
+import { users, posts } from "@/lib/db/schema";
 
 // Select type (what you get from queries)
 export type User = InferSelectModel<typeof users>;
@@ -358,8 +372,8 @@ export type NewUser = InferInsertModel<typeof users>;
 const user: User = await db.select().from(users).where(eq(users.id, id));
 
 const newUser: NewUser = {
-  email: 'test@example.com',
-  name: 'Test User',
+    email: "test@example.com",
+    name: "Test User",
 };
 ```
 
@@ -393,11 +407,13 @@ CREATE TABLE IF NOT EXISTS "users" (
 ### Apply Migration
 
 **Development:**
+
 ```bash
 pnpm db:push  # Fastest, skips migration files
 ```
 
 **Production:**
+
 ```bash
 pnpm supabase:reset  # Runs all migrations
 ```
@@ -430,7 +446,9 @@ pnpm db:push
 Make sure to export your schema in `lib/db/schema.ts`:
 
 ```typescript
-export const users = pgTable('users', { /* ... */ });
+export const users = pgTable("users", {
+    /* ... */
+});
 // ^^^^^^ Don't forget to export!
 ```
 
@@ -456,36 +474,35 @@ export const users = pgTable('users', { /* ... */ });
 
 ```typescript
 // app/api/posts/route.ts
-import { db } from '@/lib/db';
-import { posts } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
+import { db } from "@/lib/db";
+import { posts } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
 
 export async function GET() {
-  const allPosts = await db.select().from(posts);
-  return NextResponse.json(allPosts);
+    const allPosts = await db.select().from(posts);
+    return NextResponse.json(allPosts);
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const newPost = await db.insert(posts).values(body).returning();
-  return NextResponse.json(newPost[0]);
+    const body = await request.json();
+    const newPost = await db.insert(posts).values(body).returning();
+    return NextResponse.json(newPost[0]);
 }
 
 export async function PUT(request: Request) {
-  const { id, ...data } = await request.json();
-  const updated = await db
-    .update(posts)
-    .set(data)
-    .where(eq(posts.id, id))
-    .returning();
-  return NextResponse.json(updated[0]);
+    const { id, ...data } = await request.json();
+    const updated = await db
+        .update(posts)
+        .set(data)
+        .where(eq(posts.id, id))
+        .returning();
+    return NextResponse.json(updated[0]);
 }
 
 export async function DELETE(request: Request) {
-  const { id } = await request.json();
-  await db.delete(posts).where(eq(posts.id, id));
-  return NextResponse.json({ success: true });
+    const { id } = await request.json();
+    await db.delete(posts).where(eq(posts.id, id));
+    return NextResponse.json({ success: true });
 }
 ```
-

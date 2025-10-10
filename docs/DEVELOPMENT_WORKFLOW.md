@@ -47,6 +47,7 @@ pnpm dev
 ```
 
 Now you have:
+
 - ✅ Next.js running on `http://localhost:3000`
 - ✅ Supabase Studio on `http://127.0.0.1:54323`
 - ✅ Supabase API on `http://127.0.0.1:54321`
@@ -65,45 +66,55 @@ Let's say you're adding a blog feature with posts and comments.
 Edit `lib/db/schema.ts`:
 
 ```typescript
-import { pgTable, serial, text, timestamp, uuid, varchar, boolean } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import {
+    pgTable,
+    serial,
+    text,
+    timestamp,
+    uuid,
+    varchar,
+    boolean,
+} from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
 // Define the posts table
-export const posts = pgTable('posts', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  title: varchar('title', { length: 255 }).notNull(),
-  slug: varchar('slug', { length: 255 }).notNull().unique(),
-  content: text('content'),
-  excerpt: text('excerpt'),
-  published: boolean('published').default(false).notNull(),
-  authorId: uuid('author_id').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+export const posts = pgTable("posts", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: varchar("title", { length: 255 }).notNull(),
+    slug: varchar("slug", { length: 255 }).notNull().unique(),
+    content: text("content"),
+    excerpt: text("excerpt"),
+    published: boolean("published").default(false).notNull(),
+    authorId: uuid("author_id").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 // Define the comments table
-export const comments = pgTable('comments', {
-  id: serial('id').primaryKey(),
-  postId: uuid('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
-  authorId: uuid('author_id').notNull(),
-  content: text('content').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+export const comments = pgTable("comments", {
+    id: serial("id").primaryKey(),
+    postId: uuid("post_id")
+        .notNull()
+        .references(() => posts.id, { onDelete: "cascade" }),
+    authorId: uuid("author_id").notNull(),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 // Define relations (for easier queries)
 export const postsRelations = relations(posts, ({ many }) => ({
-  comments: many(comments),
+    comments: many(comments),
 }));
 
 export const commentsRelations = relations(comments, ({ one }) => ({
-  post: one(posts, {
-    fields: [comments.postId],
-    references: [posts.id],
-  }),
+    post: one(posts, {
+        fields: [comments.postId],
+        references: [posts.id],
+    }),
 }));
 
 // Export types for use in your app
-import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
+import type { InferSelectModel, InferInsertModel } from "drizzle-orm";
 
 export type Post = InferSelectModel<typeof posts>;
 export type NewPost = InferInsertModel<typeof posts>;
@@ -119,6 +130,7 @@ pnpm db:push
 ```
 
 Output:
+
 ```
 ✓ Pushing schema...
 ✓ Created table "posts"
@@ -129,6 +141,7 @@ Output:
 #### Step 3: Verify in Supabase Studio
 
 Open `http://127.0.0.1:54323` and you'll see:
+
 - ✅ Your new `posts` table
 - ✅ Your new `comments` table
 - Can browse data, run SQL, etc.
@@ -183,38 +196,43 @@ export default async function BlogPage() {
 Create a server action `app/blog/actions.ts`:
 
 ```typescript
-'use server';
+"use server";
 
-import { db } from '@/lib/db';
-import { posts } from '@/lib/db/schema';
-import { createClient } from '@/lib/supabase/server';
-import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
+import { db } from "@/lib/db";
+import { posts } from "@/lib/db/schema";
+import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 export async function createPost(formData: FormData) {
-  // Get authenticated user
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    throw new Error('Must be logged in to create posts');
-  }
+    // Get authenticated user
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
 
-  const title = formData.get('title') as string;
-  const content = formData.get('content') as string;
-  const slug = title.toLowerCase().replace(/\s+/g, '-');
+    if (!user) {
+        throw new Error("Must be logged in to create posts");
+    }
 
-  // Create post with Drizzle
-  const [newPost] = await db.insert(posts).values({
-    title,
-    content,
-    slug,
-    excerpt: content.substring(0, 200),
-    authorId: user.id,
-  }).returning();
+    const title = formData.get("title") as string;
+    const content = formData.get("content") as string;
+    const slug = title.toLowerCase().replace(/\s+/g, "-");
 
-  revalidatePath('/blog');
-  redirect(`/blog/${newPost.slug}`);
+    // Create post with Drizzle
+    const [newPost] = await db
+        .insert(posts)
+        .values({
+            title,
+            content,
+            slug,
+            excerpt: content.substring(0, 200),
+            authorId: user.id,
+        })
+        .returning();
+
+    revalidatePath("/blog");
+    redirect(`/blog/${newPost.slug}`);
 }
 ```
 
@@ -228,6 +246,7 @@ pnpm db:generate
 ```
 
 Output:
+
 ```
 ✓ Generating migration...
 ✓ Migration created: supabase/migrations/0001_add_blog_tables.sql
@@ -258,7 +277,7 @@ CREATE TABLE IF NOT EXISTS "comments" (
   "created_at" timestamp DEFAULT now() NOT NULL
 );
 
-ALTER TABLE "comments" ADD CONSTRAINT "comments_post_id_posts_id_fk" 
+ALTER TABLE "comments" ADD CONSTRAINT "comments_post_id_posts_id_fk"
   FOREIGN KEY ("post_id") REFERENCES "posts"("id") ON DELETE cascade;
 ```
 
@@ -281,9 +300,9 @@ You want to add a `viewCount` field to posts.
 
 ```typescript
 // lib/db/schema.ts
-export const posts = pgTable('posts', {
-  // ... existing fields
-  viewCount: integer('view_count').default(0).notNull(), // ← Add this
+export const posts = pgTable("posts", {
+    // ... existing fields
+    viewCount: integer("view_count").default(0).notNull(), // ← Add this
 });
 ```
 
@@ -300,9 +319,9 @@ Drizzle detects the change and alters the table!
 ```typescript
 // Increment view count
 await db
-  .update(posts)
-  .set({ viewCount: sql`${posts.viewCount} + 1` })
-  .where(eq(posts.slug, slug));
+    .update(posts)
+    .set({ viewCount: sql`${posts.viewCount} + 1` })
+    .where(eq(posts.slug, slug));
 ```
 
 ---
@@ -315,16 +334,16 @@ Create a user profile system that links to Supabase auth.
 
 ```typescript
 // lib/db/schema.ts
-export const userProfiles = pgTable('user_profiles', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  // Link to Supabase auth.users
-  authUserId: uuid('auth_user_id').notNull().unique(),
-  displayName: varchar('display_name', { length: 100 }),
-  bio: text('bio'),
-  avatarUrl: text('avatar_url'),
-  website: varchar('website', { length: 255 }),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+export const userProfiles = pgTable("user_profiles", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // Link to Supabase auth.users
+    authUserId: uuid("auth_user_id").notNull().unique(),
+    displayName: varchar("display_name", { length: 100 }),
+    bio: text("bio"),
+    avatarUrl: text("avatar_url"),
+    website: varchar("website", { length: 255 }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 ```
 
@@ -338,32 +357,36 @@ pnpm db:push
 
 ```typescript
 // app/auth/signup/actions.ts
-'use server';
+"use server";
 
-import { createClient } from '@/lib/supabase/server';
-import { db } from '@/lib/db';
-import { userProfiles } from '@/lib/db/schema';
+import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { userProfiles } from "@/lib/db/schema";
 
-export async function signUp(email: string, password: string, displayName: string) {
-  const supabase = await createClient();
-  
-  // Create auth user
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
-  
-  if (error) throw error;
-  
-  // Create profile in database
-  if (data.user) {
-    await db.insert(userProfiles).values({
-      authUserId: data.user.id,
-      displayName,
+export async function signUp(
+    email: string,
+    password: string,
+    displayName: string
+) {
+    const supabase = await createClient();
+
+    // Create auth user
+    const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
     });
-  }
-  
-  return data;
+
+    if (error) throw error;
+
+    // Create profile in database
+    if (data.user) {
+        await db.insert(userProfiles).values({
+            authUserId: data.user.id,
+            displayName,
+        });
+    }
+
+    return data;
 }
 ```
 
@@ -382,13 +405,13 @@ export default async function ProfilePage({ params }: { params: { userId: string
     .from(userProfiles)
     .where(eq(userProfiles.authUserId, params.userId))
     .limit(1);
-  
+
   // Get user's posts
   const userPosts = await db
     .select()
     .from(posts)
     .where(eq(posts.authorId, params.userId));
-  
+
   return (
     <div>
       <h1>{profile.displayName}</h1>
@@ -410,14 +433,14 @@ Upload files to Supabase Storage, track metadata with Drizzle.
 
 ```typescript
 // lib/db/schema.ts
-export const uploads = pgTable('uploads', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').notNull(),
-  fileName: varchar('file_name', { length: 255 }).notNull(),
-  storagePath: text('storage_path').notNull(),
-  mimeType: varchar('mime_type', { length: 100 }),
-  sizeBytes: integer('size_bytes'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+export const uploads = pgTable("uploads", {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    fileName: varchar("file_name", { length: 255 }).notNull(),
+    storagePath: text("storage_path").notNull(),
+    mimeType: varchar("mime_type", { length: 100 }),
+    sizeBytes: integer("size_bytes"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 ```
 
@@ -429,39 +452,41 @@ pnpm db:push
 
 ```typescript
 // app/upload/actions.ts
-'use server';
+"use server";
 
-import { createClient } from '@/lib/supabase/server';
-import { db } from '@/lib/db';
-import { uploads } from '@/lib/db/schema';
+import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { uploads } from "@/lib/db/schema";
 
 export async function uploadFile(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) throw new Error('Unauthorized');
-  
-  const file = formData.get('file') as File;
-  const fileName = file.name;
-  const storagePath = `${user.id}/${Date.now()}-${fileName}`;
-  
-  // Upload to Supabase Storage
-  const { data: storageData, error: storageError } = await supabase.storage
-    .from('uploads')
-    .upload(storagePath, file);
-  
-  if (storageError) throw storageError;
-  
-  // Save metadata to database
-  await db.insert(uploads).values({
-    userId: user.id,
-    fileName,
-    storagePath: storageData.path,
-    mimeType: file.type,
-    sizeBytes: file.size,
-  });
-  
-  return { success: true };
+    const supabase = await createClient();
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) throw new Error("Unauthorized");
+
+    const file = formData.get("file") as File;
+    const fileName = file.name;
+    const storagePath = `${user.id}/${Date.now()}-${fileName}`;
+
+    // Upload to Supabase Storage
+    const { data: storageData, error: storageError } = await supabase.storage
+        .from("uploads")
+        .upload(storagePath, file);
+
+    if (storageError) throw storageError;
+
+    // Save metadata to database
+    await db.insert(uploads).values({
+        userId: user.id,
+        fileName,
+        storagePath: storageData.path,
+        mimeType: file.type,
+        sizeBytes: file.size,
+    });
+
+    return { success: true };
 }
 ```
 
@@ -472,18 +497,18 @@ export async function uploadFile(formData: FormData) {
 ### Task: Query with Relations
 
 ```typescript
-import { db } from '@/lib/db';
-import { posts, comments, userProfiles } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { db } from "@/lib/db";
+import { posts, comments, userProfiles } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 // Get post with all comments and author info
 const postWithDetails = await db.query.posts.findFirst({
-  where: eq(posts.slug, slug),
-  with: {
-    comments: {
-      orderBy: (comments, { desc }) => [desc(comments.createdAt)],
+    where: eq(posts.slug, slug),
+    with: {
+        comments: {
+            orderBy: (comments, { desc }) => [desc(comments.createdAt)],
+        },
     },
-  },
 });
 ```
 
@@ -492,43 +517,46 @@ const postWithDetails = await db.query.posts.findFirst({
 ```typescript
 // Get posts with author profiles and comment counts
 const postsWithAuthors = await db
-  .select({
-    post: posts,
-    author: {
-      id: userProfiles.id,
-      displayName: userProfiles.displayName,
-      avatarUrl: userProfiles.avatarUrl,
-    },
-    commentCount: sql<number>`count(${comments.id})`,
-  })
-  .from(posts)
-  .leftJoin(userProfiles, eq(posts.authorId, userProfiles.authUserId))
-  .leftJoin(comments, eq(posts.id, comments.postId))
-  .groupBy(posts.id, userProfiles.id)
-  .orderBy(desc(posts.createdAt));
+    .select({
+        post: posts,
+        author: {
+            id: userProfiles.id,
+            displayName: userProfiles.displayName,
+            avatarUrl: userProfiles.avatarUrl,
+        },
+        commentCount: sql<number>`count(${comments.id})`,
+    })
+    .from(posts)
+    .leftJoin(userProfiles, eq(posts.authorId, userProfiles.authUserId))
+    .leftJoin(comments, eq(posts.id, comments.postId))
+    .groupBy(posts.id, userProfiles.id)
+    .orderBy(desc(posts.createdAt));
 ```
 
 ### Task: Transaction
 
 ```typescript
-import { db } from '@/lib/db';
+import { db } from "@/lib/db";
 
-await db.transaction(async (tx) => {
-  // Create post
-  const [post] = await tx.insert(posts).values({
-    title: 'New Post',
-    content: 'Content',
-    authorId: userId,
-  }).returning();
-  
-  // Create initial comment
-  await tx.insert(comments).values({
-    postId: post.id,
-    authorId: userId,
-    content: 'First!',
-  });
-  
-  // If anything fails, both rollback
+await db.transaction(async tx => {
+    // Create post
+    const [post] = await tx
+        .insert(posts)
+        .values({
+            title: "New Post",
+            content: "Content",
+            authorId: userId,
+        })
+        .returning();
+
+    // Create initial comment
+    await tx.insert(comments).values({
+        postId: post.id,
+        authorId: userId,
+        content: "First!",
+    });
+
+    // If anything fails, both rollback
 });
 ```
 
@@ -614,6 +642,7 @@ pnpm run setup:supabase      # Re-run Supabase setup
 ## 🎯 Best Practices
 
 ### 1. **Use `db:push` for Development**
+
 Fast iteration - no migration files needed
 
 ```bash
@@ -622,6 +651,7 @@ pnpm db:push
 ```
 
 ### 2. **Use `db:generate` for Production**
+
 Generate migrations, review them, commit to git
 
 ```bash
@@ -630,30 +660,35 @@ pnpm db:generate
 ```
 
 ### 3. **Always Use Supabase for Auth**
+
 Never try to manage auth yourself
 
 ```typescript
 // ✅ Good
 const supabase = await createClient();
-const { data: { user } } = await supabase.auth.getUser();
+const {
+    data: { user },
+} = await supabase.auth.getUser();
 
 // ❌ Bad - Don't query auth.users directly
 ```
 
 ### 4. **Use Drizzle for Complex Queries**
+
 Type-safe, better DX
 
 ```typescript
 // ✅ Good - Drizzle
 const posts = await db
-  .select()
-  .from(posts)
-  .leftJoin(comments, eq(posts.id, comments.postId));
+    .select()
+    .from(posts)
+    .leftJoin(comments, eq(posts.id, comments.postId));
 
 // ⚠️ Less ideal - Supabase client for complex joins
 ```
 
 ### 5. **Server-Side Only**
+
 Keep database queries in server components/actions
 
 ```typescript
@@ -681,15 +716,15 @@ const posts = await db.select().from(posts); // Won't work!
 
 ## 📚 Quick Reference
 
-| Need to... | Use... | Command |
-|------------|--------|---------|
-| Add table | Edit schema → push | `pnpm db:push` |
-| Query data | Drizzle in server component | `await db.select()` |
-| Authenticate | Supabase client | `supabase.auth` |
-| Upload files | Supabase storage | `supabase.storage` |
-| Complex query | Drizzle with joins | `db.select().leftJoin()` |
-| See data | Drizzle/Supabase Studio | `pnpm db:studio` |
-| Deploy | Generate migration | `pnpm db:generate` |
+| Need to...    | Use...                      | Command                  |
+| ------------- | --------------------------- | ------------------------ |
+| Add table     | Edit schema → push          | `pnpm db:push`           |
+| Query data    | Drizzle in server component | `await db.select()`      |
+| Authenticate  | Supabase client             | `supabase.auth`          |
+| Upload files  | Supabase storage            | `supabase.storage`       |
+| Complex query | Drizzle with joins          | `db.select().leftJoin()` |
+| See data      | Drizzle/Supabase Studio     | `pnpm db:studio`         |
+| Deploy        | Generate migration          | `pnpm db:generate`       |
 
 ---
 
@@ -703,8 +738,8 @@ const posts = await db.select().from(posts); // Won't work!
 4. **Generate migrations** when ready for production
 
 Supabase + Drizzle gives you the best of both worlds:
+
 - 🔐 **Supabase** = Auth, Storage, Realtime (the hard stuff)
 - 🎯 **Drizzle** = Type-safe queries, schema management (the DX)
 
 Both working on the **same database**, configured automatically! 🚀
-

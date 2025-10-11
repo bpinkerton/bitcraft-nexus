@@ -138,7 +138,7 @@
 - **Playwright** for E2E browser tests
 - **Manual testing procedures** documented until automated tests exist
 
-**Mirage JS** for API mocking
+- **Mirage JS** for API mocking
 
 **Rationale:** Testing is valuable but should not paralyze development, especially in early stages. For TypeScript full-stack apps, type safety catches many bugs that unit tests would catch in dynamic languages. Focus testing effort on high-risk areas (auth, data mutations, critical paths) rather than chasing coverage metrics. As the project matures, test coverage grows naturally where value is proven.
 

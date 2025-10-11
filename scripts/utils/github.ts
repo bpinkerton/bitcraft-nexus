@@ -190,7 +190,6 @@ export async function downloadGitHubFolder(
     const progress = { current: 0, total: totalFiles, onProgress };
     await downloadGitHubFolderRecursive(repo, branch, sourcePath, destPath, progress);
 
-    return Promise.resolve();
 }
 
 /**

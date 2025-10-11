@@ -130,26 +130,40 @@ async function downloadGitHubFolderRecursive(
 ): Promise<void> {
     const items = await fetchDirectoryContents(repo, branch, sourcePath);
 
-    for (const item of items) {
-        const itemDestPath = path.join(destPath, item.name);
+    // Separate files and directories for parallel processing
+    const files = items.filter(item => item.type === 'file' && item.download_url);
+    const dirs = items.filter(item => item.type === 'dir');
 
-        if (item.type === 'file' && item.download_url) {
-            await downloadFile(item.download_url, itemDestPath);
-            progress.current++;
-            if (progress.onProgress) {
-                progress.onProgress(progress.current, progress.total, item.name);
-            }
-        } else if (item.type === 'dir') {
-            fs.mkdirSync(itemDestPath, { recursive: true });
-            await downloadGitHubFolderRecursive(
-                repo,
-                branch,
-                item.path,
-                itemDestPath,
-                progress
-            );
-        }
+    // Create all directories first (synchronously to avoid race conditions)
+    for (const dir of dirs) {
+        const dirDestPath = path.join(destPath, dir.name);
+        fs.mkdirSync(dirDestPath, { recursive: true });
     }
+
+    // Download all files in parallel
+    const fileDownloads = files.map(async (file) => {
+        const fileDestPath = path.join(destPath, file.name);
+        await downloadFile(file.download_url!, fileDestPath);
+        progress.current++;
+        if (progress.onProgress) {
+            progress.onProgress(progress.current, progress.total, file.name);
+        }
+    });
+
+    // Process all subdirectories in parallel
+    const dirDownloads = dirs.map(async (dir) => {
+        const dirDestPath = path.join(destPath, dir.name);
+        await downloadGitHubFolderRecursive(
+            repo,
+            branch,
+            dir.path,
+            dirDestPath,
+            progress
+        );
+    });
+
+    // Wait for all operations to complete
+    await Promise.all([...fileDownloads, ...dirDownloads]);
 }
 
 /**

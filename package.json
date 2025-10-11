@@ -1,20 +1,17 @@
 {
     "private": true,
     "scripts": {
-        "dev": "next dev --turbopack",
+        "dev": "tsx scripts/env-setup.ts && next dev --turbopack",
         "build": "next build",
         "start": "next start",
         "lint": "next lint",
         "prepare": "husky",
-        "postinstall": "node scripts/setup/index.js",
         "commitlint": "commitlint --edit",
-        "setup:supabase": "node scripts/setup/supabase.js",
-        "setup:spacetime": "node scripts/setup/spacetime.js",
-        "supabase:start": "pnpx supabase start",
-        "supabase:stop": "pnpx supabase stop",
-        "supabase:restart": "pnpx supabase restart",
-        "supabase:status": "pnpx supabase status",
-        "supabase:reset": "pnpx supabase db reset",
+        "env:setup": "tsx scripts/env-setup.ts",
+        "env:setup:supabase": "tsx scripts/modules/supabase.ts",
+        "env:setup:spacetime": "tsx scripts/modules/spacetime.ts",
+        "env:setup:spacetime:bindings": "tsx scripts/modules/spacetime-bindings.ts",
+        "env:setup:spacetime:auth": "tsx scripts/modules/spacetime-auth.ts",
         "db:generate": "drizzle-kit generate",
         "db:migrate": "drizzle-kit migrate",
         "db:push": "drizzle-kit push",
@@ -43,6 +40,7 @@
         "tailwind-merge": "^3.3.0"
     },
     "devDependencies": {
+        "@clack/prompts": "^0.11.0",
         "@commitlint/cli": "^20.1.0",
         "@commitlint/config-conventional": "^20.0.0",
         "@eslint/eslintrc": "^3",
@@ -59,6 +57,7 @@
         "supabase": "^2.48.3",
         "tailwindcss": "^3.4.1",
         "tailwindcss-animate": "^1.0.7",
+        "tsx": "^4.20.6",
         "typescript": "^5"
     }
 }

@@ -1,187 +1,289 @@
-# Scripts Directory
+# Setup Scripts
 
-This directory contains automation scripts for project setup and maintenance.
+Interactive post-install automation for BitCraft Nexus development environment.
 
-## Directory Structure
+## Overview
 
+The setup system is built with modular, self-contained modules that each handle a specific aspect of the development environment. Each module can detect if it needs to run and validate its completion status.
+
+## Quick Start
+
+```bash
+# Install dependencies
+pnpm install
+
+# Start development (automatically runs setup if needed)
+pnpm dev
+
+# Or run setup manually
+pnpm env:setup
+
+# Run specific setup modules
+pnpm env:setup:supabase              # Setup Supabase local instance
+pnpm env:setup:spacetime             # Setup both SpacetimeDB bindings and auth
+pnpm env:setup:spacetime:bindings    # Download latest bindings only
+pnpm env:setup:spacetime:auth        # Configure auth token only
 ```
-scripts/
-├── setup/              # Modular setup scripts
-│   ├── index.js       # Main postinstall orchestrator
-│   └── supabase.js    # Supabase setup module
-└── README.md          # This file
-```
 
-## Setup Scripts
+**Note**: `pnpm dev` automatically runs environment setup before starting the Next.js dev server. If everything is already configured, it starts immediately.
 
-### Postinstall (`setup/index.js`)
+## Modules
 
-The main postinstall script that runs automatically after `pnpm install`. It orchestrates all setup tasks in a modular way.
+### 1. Git Hooks
+**Purpose**: Install Husky git hooks for conventional commits and linting
 
-**Features:**
+**Checks**:
+- ✓ `.husky/commit-msg` exists
 
-- Runs multiple setup tasks sequentially
-- Each task can be marked as required or optional
-- Provides a summary of all tasks at the end
-- Gracefully handles failures
+**Actions**:
+- Runs `pnpm prepare` to install Husky hooks
 
-**Adding a new setup task:**
+---
 
-1. Create a new file in `scripts/setup/` (e.g., `database.js`)
-2. Export an async function that returns `true` for success, `false` for failure:
+### 2. Supabase
+**Purpose**: Ensure Supabase is running locally with correct environment variables
 
-```javascript
-#!/usr/bin/env node
+**Checks**:
+- ✓ `pnpx supabase status` returns success
+- ✓ `.env.local` contains matching credentials
 
-async function setupDatabase(options = {}) {
-    console.log("🗄️  Setting up database...\n");
+**Actions**:
+1. Run `pnpx supabase status`
+2. If running, validate credentials match `.env.local`
+3. If not running, try `pnpx supabase start`
+4. If start fails (not initialized), prompt to run `pnpx supabase init`
+5. Update `.env.local` with credentials
 
-    try {
-        // Your setup logic here
-        console.log("✅ Database setup complete\n");
-        return true;
-    } catch (error) {
-        console.error("❌ Database setup failed:", error.message);
-        return false;
-    }
+**Environment Variables Set**:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `DATABASE_URL` (optional)
+
+---
+
+### 3. SpacetimeDB Bindings
+**Purpose**: Sync TypeScript bindings from GitHub and keep them up-to-date
+
+**Checks**:
+- ✓ `spacetime_bindings/` directory exists
+- ✓ `.bindings-meta.json` matches latest GitHub commit SHA
+
+**Actions**:
+1. Prompt for binding type (global/regional) if not configured
+2. Fetch latest commit SHA from GitHub repo
+3. Compare with local metadata
+4. Download bindings if outdated or missing
+5. Save metadata for future checks
+
+**Configuration**:
+- **Global** (default): `BitCraftToolBox/BitCraft_Bindings:ts-global/src`
+- **Regional**: `BitCraftToolBox/BitCraft_Bindings:ts-region/src`
+
+**Files Created**:
+- `spacetime_bindings/` - TypeScript binding files
+- `.bindings-meta.json` - Metadata for update detection
+
+---
+
+### 4. SpacetimeDB Auth
+**Purpose**: Generate and store valid `SPACETIME_AUTH_TOKEN`
+
+**Checks**:
+- ✓ `SPACETIME_AUTH_TOKEN` exists in `.env.local`
+- ✓ Token is valid JWT and not expired
+
+**Actions**:
+1. Check if existing token is valid
+2. If invalid or missing, prompt for BitCraft email
+3. Call API to request access code: `POST /authentication/request-access-code`
+4. Prompt user to enter 6-digit code from email
+5. Call API to authenticate: `POST /authentication/authenticate`
+6. Store token in `.env.local`
+
+**API Endpoints**:
+- Request code: `https://api.bitcraftonline.com/authentication/request-access-code?email=<email>`
+- Authenticate: `https://api.bitcraftonline.com/authentication/authenticate?email=<email>&accessCode=<code>`
+
+**Environment Variables Set**:
+- `SPACETIME_AUTH_TOKEN`
+
+---
+
+## Architecture
+
+### Module System
+
+All modules extend the `Module` base class:
+
+```typescript
+abstract class Module {
+  abstract readonly name: string;
+  abstract readonly description: string;
+  readonly dependencies: ModuleDependency[] = [];
+
+  abstract isComplete(): Promise<boolean>;
+  abstract run(): Promise<ModuleResult>;
+  async validate(): Promise<boolean>;
+  async cleanup(): Promise<void>;
 }
-
-// Allow running directly
-if (require.main === module) {
-    setupDatabase()
-        .then(success => process.exit(success ? 0 : 1))
-        .catch(error => {
-            console.error("Error:", error);
-            process.exit(1);
-        });
-}
-
-module.exports = { setupDatabase };
 ```
 
-3. Add it to the `SETUP_TASKS` array in `setup/index.js`:
+### Module Lifecycle
 
-```javascript
-const { setupDatabase } = require("./database");
+1. **Detection**: `isComplete()` checks if module needs to run
+2. **Execution**: `run()` performs setup with user interaction
+3. **Validation**: `validate()` confirms setup succeeded
+4. **Cleanup**: `cleanup()` rolls back on failure (optional)
 
-const SETUP_TASKS = [
-    // ... existing tasks
-    {
-        name: "Database",
-        fn: setupDatabase,
-        options: {},
-        required: false, // Set to true if this task must succeed
-    },
+### Utilities
+
+#### Environment Management (`utils/env.ts`)
+- `readEnvLocal()` - Parse `.env.local` into object
+- `getEnvVar(key)` - Get specific variable
+- `updateEnvLocal(vars)` - Merge new variables (preserves existing)
+- `createEnvFile(vars)` - Create new `.env.local`
+- `validateEnvVars(keys)` - Check required variables exist
+
+#### Command Execution (`utils/exec.ts`)
+- `exec(command, args)` - Execute shell command
+- `pnpx(command, args)` - Execute with pnpx
+- `commandExists(command)` - Check if command available
+
+#### GitHub Integration (`utils/github.ts`)
+- `fetchLatestCommitSHA(repo, branch, path)` - Get latest commit
+- `fetchDirectoryContents(repo, branch, path)` - List files
+- `downloadGitHubFolder(repo, branch, src, dest)` - Recursive download
+- `fetchFileContent(repo, branch, path)` - Download single file
+
+## Creating New Modules
+
+1. **Create module file** in `scripts/modules/`:
+
+```typescript
+import { Module, ModuleResult } from './base';
+
+export class MyModule extends Module {
+  readonly name = 'My Module';
+  readonly description = 'Does something useful';
+
+  async isComplete(): Promise<boolean> {
+    // Return true if already set up
+    return false;
+  }
+
+  async run(): Promise<ModuleResult> {
+    // Interactive setup logic
+    return {
+      status: 'complete',
+      message: 'Setup complete'
+    };
+  }
+}
+```
+
+2. **Add to orchestrator** in `scripts/postinstall.ts`:
+
+```typescript
+import { MyModule } from './modules/my-module';
+
+const modules: Module[] = [
+  new GitHooksModule(),
+  new SupabaseModule(),
+  new MyModule(), // Add here
+  // ...
 ];
 ```
 
-4. Add a corresponding npm script in `package.json`:
+3. **Add script** to `package.json`:
 
 ```json
 {
-    "scripts": {
-        "setup:database": "node scripts/setup/database.js"
-    }
+  "scripts": {
+    "setup:mymodule": "tsx scripts/modules/my-module.ts"
+  }
 }
 ```
 
-## Available Setup Modules
+## Features
 
-### Supabase (`setup/supabase.js`)
+### Smart Detection
+- Modules automatically skip if already complete
+- Idempotent - safe to run multiple times
+- Dependency-aware execution order
 
-Sets up Supabase local development environment.
+### User Experience
+- Interactive prompts with @clack/prompts
+- Progress spinners for long operations
+- Color-coded status messages
+- Multi-select for choosing modules
 
-**What it does:**
+### CI/CD Friendly
+- Automatically skips when `CI=true`
+- No user interaction required
+- Can be disabled with `--ignore-scripts`
 
-1. Checks if `.env.local` already exists (skips if found)
-2. Initializes Supabase if not already initialized
-3. Starts Supabase local containers
-4. Extracts API URL and anon key from output
-5. Creates/updates `.env.local` with credentials
-
-**Options:**
-
-- `skipIfExists` (default: `true`) - Skip if `.env.local` exists
-- `force` (default: `false`) - Force setup even if configured
-
-**Run manually:**
-
-```bash
-pnpm run setup:supabase          # Normal setup
-node scripts/setup/supabase.js   # Direct execution
-```
-
-**Run with force:**
-
-```bash
-node scripts/setup/supabase.js --force
-```
-
-## Environment Variables
-
-Setup scripts may create or modify `.env.local`. This file is gitignored and contains:
-
-- Supabase credentials (API URL, anon key)
-- Any other local development secrets
-
-## CI/CD Considerations
-
-In CI/CD environments, you may want to skip certain setup tasks. You can do this by:
-
-1. Setting environment variables to skip tasks
-2. Modifying the postinstall script to detect CI environment
-3. Using `--ignore-scripts` flag during `pnpm install` in CI
-
-Example:
-
-```bash
-# Skip postinstall in CI
-CI=true pnpm install --ignore-scripts
-```
+### Error Handling
+- Graceful failure handling
+- Option to continue on module failure
+- Detailed error messages
+- Optional rollback support
 
 ## Troubleshooting
 
-### Postinstall fails
-
-If postinstall fails, you can:
-
-1. Run individual setup tasks manually:
-
-    ```bash
-    pnpm run setup:supabase
-    ```
-
-2. Skip postinstall and run it later:
-
-    ```bash
-    pnpm install --ignore-scripts
-    pnpm run postinstall
-    ```
-
-3. Check the logs for which task failed and run it directly:
-    ```bash
-    node scripts/setup/supabase.js
-    ```
-
-### Reset everything
-
-To reset your local setup:
-
-1. Delete `.env.local`
-2. Stop Supabase: `pnpm supabase:stop`
-3. Run postinstall: `node scripts/setup/index.js`
-
-Or use the force flag:
-
+### Postinstall fails in CI
+The script automatically detects `CI=true` and skips. If needed, use:
 ```bash
-node scripts/setup/supabase.js --force
+pnpm install --ignore-scripts
 ```
 
-## Best Practices
+### Module keeps prompting
+Check completion detection in `isComplete()`. The module may not be detecting existing setup correctly.
 
-1. **Idempotent**: Setup scripts should be safe to run multiple times
-2. **Informative**: Provide clear console output about what's happening
-3. **Graceful failures**: Handle errors and provide helpful messages
-4. **Skip when appropriate**: Don't redo work that's already done
-5. **Modular**: Keep each setup task in its own file
-6. **Testable**: Each module can be run independently
+### Credentials mismatch
+Run setup manually to refresh:
+```bash
+pnpm setup:supabase
+```
+
+### Bindings out of date
+The bindings module checks GitHub on every run. If stuck, delete metadata:
+```bash
+rm .bindings-meta.json
+pnpm setup:spacetime
+```
+
+## Development
+
+### Running modules individually
+Each module can be executed standalone:
+```bash
+tsx scripts/modules/supabase.ts
+tsx scripts/modules/spacetime-bindings.ts
+tsx scripts/modules/spacetime-auth.ts
+```
+
+### Testing without postinstall
+Use the manual setup command:
+```bash
+pnpm setup
+```
+
+### Debugging
+Add logging to module methods:
+```typescript
+async run(): Promise<ModuleResult> {
+  console.log('Debug: checking status...');
+  // ...
+}
+```
+
+## Dependencies
+
+- **@clack/prompts**: Interactive CLI prompts
+- **tsx**: TypeScript execution
+- **Node.js fetch**: HTTP requests (built-in)
+- **Node.js fs/path**: File operations (built-in)
+
+## License
+
+Part of BitCraft Nexus project.

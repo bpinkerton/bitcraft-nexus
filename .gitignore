@@ -44,3 +44,6 @@ next-env.d.ts
 
 # drizzle
 .drizzle
+
+# setup metadata
+.bindings-meta.json

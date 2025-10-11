@@ -116,6 +116,8 @@ export function pnpx(
  * Check if a command is available in PATH
  */
 export async function commandExists(command: string): Promise<boolean> {
-    const result = await exec('where', [command]);
+    const isWindows = process.platform === 'win32';
+    const checkCmd = isWindows ? 'where' : 'which';
+    const result = await exec(checkCmd, [command]);
     return result.exitCode === 0;
 }

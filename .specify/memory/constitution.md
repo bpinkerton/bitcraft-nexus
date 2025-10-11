@@ -311,7 +311,7 @@ bitcraft-nexus/
 
 ### Licensing & Attribution
 
-- **License:** [Specify your license - e.g., MIT, Apache 2.0, GPL]
+- **License:** MIT
 - **All contributions** are assumed to be under the project license unless explicitly stated
 - **Contributor attributions** are maintained in git history - no separate CONTRIBUTORS file needed
 - **Third-party code** MUST retain original license headers and be compatible with project license

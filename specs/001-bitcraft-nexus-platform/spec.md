@@ -5,6 +5,16 @@
 **Status**: Draft
 **Input**: User description: "BitCraft Nexus Platform - Build BitCraft Nexus, a unified Next.js web application that consolidates essential BitCraft community tools into a single, cohesive experience. The application consumes a normalized Game Data API (buffer service) that interfaces with a third party spacetime database. It provides recipe browsing, workflow optimization, interactive maps, resource tracking, and empire planning tools that seamlessly share data through a consistent UI. The platform will also include Discord Bot hooks to tap into certain elements of the application. Everything you can do in the UI, you can do via the API. The application will leverage supabase for auth via discord OAuth and app data storage. The user profiles we build should be associated with three entities: Our application (some form of profile id), Discord (via OAuth, we will likely need their discord id or something to associate with the discord bot commands), BitCraft Game User (this will likely be a player id of some sort and we need to define a mechinism to consistently link)"
 
+## Clarifications
+
+### Session 2025-10-12
+
+- Q: What logging/metrics/tracing approach should the platform implement for operational visibility? → A: Full observability deferred - implement minimal logging now, add comprehensive monitoring post-pilot
+- Q: What rate limits should apply per authenticated user for API requests? → A: 500 requests per minute per user
+- Q: What cache TTL should apply to game data responses from the normalized API? → A: Different TTLs per data category - Static reference data: 24 hours, Semi-static data: 6 hours, Dynamic data: 1 hour, Real-time data: 5 minutes
+- Q: What encryption strategy should the platform implement beyond default provider settings? → A: Rely entirely on Supabase's encryption at rest and HTTPS in transit, with focus on secure token handling (HTTPS-only enforcement, short-lived JWT tokens with refresh mechanism)
+- Q: How should the platform handle scaling if pilot phase exceeds 5000 concurrent users? → A: Defer scaling strategy until hosting provider selected; likely containerized deployment with load-balanced replicas
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - User Authentication & Three-Way Identity Linking (Priority: P1)
@@ -155,9 +165,9 @@ Platform administrators need to control API access during the pilot phase. The s
 
 - **FR-011**: System MUST consume game data from the normalized Game Data API (buffer service) that interfaces with the spacetime database
 - **FR-012**: System MUST implement API key-based access control for game data API during pilot phase, restricting access to approved clients (web UI, Discord bot, and pilot program participants), with plans to transition to fully public API access in future phases
-- **FR-013**: System MUST cache game data responses with appropriate TTL to minimize API calls
+- **FR-013**: System MUST cache game data responses with category-specific TTLs to minimize API calls: static reference data (recipes, item definitions) at 24 hours, semi-static data (resource nodes, biomes) at 6 hours, dynamic data (territories, economy) at 1 hour, and real-time data (player counts, events) at 5 minutes
 - **FR-014**: System MUST handle API unavailability gracefully by serving stale cached data with staleness indicators
-- **FR-015**: System MUST refresh cached game data automatically when TTL expires
+- **FR-015**: System MUST refresh cached game data automatically when category-specific TTL expires
 - **FR-016**: System MUST display data freshness timestamps to users (e.g., "Updated 5 minutes ago")
 - **FR-017**: System MUST implement exponential backoff when the external game data API returns rate limit errors
 - **FR-018**: System MUST log all interactions with the external game data API for debugging and monitoring
@@ -166,7 +176,7 @@ Platform administrators need to control API access during the pilot phase. The s
 
 - **FR-019**: System MUST provide RESTful API endpoints following consistent design patterns (resource naming, HTTP verbs, response formats)
 - **FR-020**: API MUST require authentication via session tokens for protected resources
-- **FR-021**: API MUST implement rate limiting per user to prevent abuse
+- **FR-021**: API MUST implement rate limiting of 500 requests per minute per authenticated user to prevent abuse while supporting normal interactive usage patterns
 - **FR-022**: API MUST return consistent error responses with appropriate HTTP status codes and structured error messages
 - **FR-023**: API MUST support pagination for list endpoints with configurable page sizes
 - **FR-024**: API MUST include CORS headers to support web UI and approved third-party clients
@@ -205,6 +215,24 @@ Platform administrators need to control API access during the pilot phase. The s
 - **FR-048**: System MUST provide a feature flag to disable pilot mode and transition to fully public API access
 - **FR-049**: System MUST rate limit per API key in addition to per-user rate limiting
 
+### Non-Functional Requirements
+
+**Observability & Operations**
+
+- **NFR-001**: System MUST implement minimal logging during pilot phase (console output with timestamps, user IDs, endpoint paths, and error stack traces)
+- **NFR-002**: System MUST defer comprehensive observability (structured logging, custom metrics, distributed tracing) to post-pilot phases
+- **NFR-003**: System MUST log critical operations to Supabase audit table for compliance (profile linking, API key operations, identity changes)
+- **NFR-004**: System SHOULD leverage Supabase native query metrics and Vercel/hosting provider default analytics without custom instrumentation during pilot
+
+**Security & Data Protection**
+
+- **NFR-005**: System MUST enforce HTTPS-only for all API endpoints and web pages (no HTTP fallback)
+- **NFR-006**: System MUST rely on Supabase's built-in encryption at rest for all database storage without additional application-layer encryption
+- **NFR-007**: System MUST use Supabase Auth's JWT token mechanism with short-lived access tokens and secure refresh token rotation
+- **NFR-008**: System MUST prevent token replay attacks by validating token expiry and binding tokens to user sessions
+- **NFR-009**: API keys MUST be transmitted only via secure headers (Authorization header) and never in URL query parameters
+- **NFR-010**: System MUST implement secure session management following OWASP guidelines (HttpOnly cookies, SameSite attributes, CSRF protection)
+
 ### Key Entities
 
 - **User Profile**: Represents a platform user with three associated identities (platform ID generated on first auth, Discord ID from OAuth, BitCraft player ID from email verification). Contains account settings, preferences, creation/update timestamps. Links to all user-generated content in future features.
@@ -213,7 +241,7 @@ Platform administrators need to control API access during the pilot phase. The s
 
 - **BitCraft Identity Link**: Associates a verified BitCraft email address with its corresponding player ID. Created during the two-step verification process. Enforces uniqueness to prevent duplicate linking. Contains verification timestamp and verification method metadata.
 
-- **Game Data Cache Entry**: System-level cache of responses from the normalized Game Data API. Contains cache key (endpoint/parameters), response body (JSON), TTL, fetch timestamp, and staleness indicator. Enables offline resilience and reduces API load.
+- **Game Data Cache Entry**: System-level cache of responses from the normalized Game Data API. Contains cache key (endpoint/parameters), response body (JSON), data category (static/semi-static/dynamic/real-time), category-specific TTL (24h/6h/1h/5min), fetch timestamp, and staleness indicator. Enables offline resilience and reduces API load.
 
 - **API Key**: Pilot phase access control entity. Contains unique key value, associated client name/description, creation timestamp, active/revoked status, permissions scope, and usage tracking metadata. Used to gate API access during controlled rollout.
 
@@ -236,7 +264,7 @@ Platform administrators need to control API access during the pilot phase. The s
 - **SC-009**: Database migrations complete without downtime or data loss for 100% of schema changes
 - **SC-010**: 90% of users successfully link their BitCraft player ID within their first 3 sessions
 - **SC-011**: Platform maintains 99.5% uptime for core infrastructure (authentication, API gateway, database) over 30-day periods
-- **SC-012**: API rate limiting prevents abuse while allowing 95% of legitimate requests to succeed
+- **SC-012**: API rate limiting (500 requests/minute per user) prevents abuse while allowing 95% of legitimate requests to succeed
 - **SC-013**: During pilot phase, API key validation adds less than 10 milliseconds to request processing time
 - **SC-014**: Audit logs capture 100% of critical operations (profile linking, identity changes, API key revocations)
 - **SC-015**: System handles graceful degradation when external dependencies fail, maintaining core functionality for at least 4 hours on cached data
@@ -251,7 +279,7 @@ Platform administrators need to control API access during the pilot phase. The s
 - **A-006**: Discord bot hosting and rate limits follow Discord's standard bot API guidelines (50 requests per second per server)
 - **A-007**: Data retention follows standard SaaS practices: user data retained indefinitely while account active, 30-day grace period after account deletion
 - **A-008**: Browser compatibility targets modern evergreen browsers (Chrome, Firefox, Safari, Edge) released within the last 2 years
-- **A-009**: Supabase PostgreSQL provides sufficient performance and scalability for pilot phase (estimated 1000-5000 users)
+- **A-009**: Supabase PostgreSQL provides sufficient performance and scalability for pilot phase (estimated 1000-5000 users); horizontal scaling strategy deferred to hosting provider selection (likely containerized deployment with load balancing)
 - **A-010**: The BitCraft email verification API is accessible from the platform's servers (no CORS or IP restrictions)
 - **A-011**: Platform administrators have access to Supabase dashboard and database management tools
 - **A-012**: Future features will be specified separately and will consume this platform infrastructure

@@ -47,3 +47,6 @@ next-env.d.ts
 
 # setup metadata
 .bindings-meta.json
+
+# AI agents
+.claude/settings.local.json

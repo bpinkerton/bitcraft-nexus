@@ -1,0 +1,570 @@
+openapi: 3.1.0
+info:
+  title: BitCraft Nexus Authentication API
+  version: 1.0.0
+  description: |
+    Authentication and user identity management endpoints for BitCraft Nexus platform.
+
+    **Authentication Flow**:
+    1. User clicks "Sign in with Discord" → redirect to Discord OAuth (handled by Supabase)
+    2. OAuth callback creates user profile and Discord link automatically
+    3. User accesses `/api/auth/session` to retrieve current session data
+    4. User can link BitCraft account via `/api/auth/link-bitcraft/*` endpoints
+
+    **Session Management**:
+    - Sessions use JWT tokens managed by Supabase Auth
+    - Tokens stored in HTTP-only cookies for security
+    - Automatic refresh via Next.js middleware
+    - Session data available via `/api/auth/session` endpoint
+
+servers:
+  - url: https://nexus.bitcraftgame.com/api
+    description: Production API
+  - url: http://localhost:3000/api
+    description: Local development
+
+tags:
+  - name: Session
+    description: Session management and authentication status
+  - name: BitCraft Linking
+    description: BitCraft player account verification and linking
+  - name: Profile
+    description: User profile and identity management
+
+paths:
+  /auth/session:
+    get:
+      summary: Get current session
+      description: |
+        Returns the current authenticated user's session data including platform ID,
+        Discord identity, and BitCraft link status.
+
+        **Auth Required**: Yes (JWT token in cookie)
+      tags: [Session]
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Session data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+              examples:
+                linked:
+                  summary: Fully linked user
+                  value:
+                    user:
+                      id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+                      createdAt: '2025-10-01T12:00:00Z'
+                    discord:
+                      id: '123456789012345678'
+                      username: 'gamer123'
+                      avatar: 'a1b2c3d4e5f6'
+                      linkedAt: '2025-10-01T12:00:00Z'
+                    bitcraft:
+                      email: 'player@example.com'
+                      playerId: 'BC-12345'
+                      verifiedAt: '2025-10-02T15:30:00Z'
+                      isActive: true
+                unlinked:
+                  summary: User without BitCraft link
+                  value:
+                    user:
+                      id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+                      createdAt: '2025-10-01T12:00:00Z'
+                    discord:
+                      id: '123456789012345678'
+                      username: 'gamer123'
+                      avatar: null
+                      linkedAt: '2025-10-01T12:00:00Z'
+                    bitcraft: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/link-bitcraft/request:
+    post:
+      summary: Request BitCraft verification code
+      description: |
+        Initiates the BitCraft account linking process by sending a verification code
+        to the provided email address. The code is delivered via BitCraft's email system.
+
+        **Auth Required**: Yes (JWT token in cookie)
+
+        **Rate Limit**: 3 requests per user per hour
+
+        **Flow**:
+        1. User submits their BitCraft email
+        2. Platform calls BitCraft API to trigger code delivery
+        3. User receives email with 6-digit code
+        4. User submits code via `/api/auth/link-bitcraft/verify`
+      tags: [BitCraft Linking]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkBitCraftRequest'
+            examples:
+              valid:
+                value:
+                  email: 'player@example.com'
+      responses:
+        '200':
+          description: Verification code sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkBitCraftRequestResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: 'Verification code sent to player@example.com. Please check your email.'
+        '400':
+          description: Invalid email format or email already linked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidEmail:
+                  summary: Invalid email format
+                  value:
+                    error: 'Bad Request'
+                    message: 'Invalid email address'
+                    code: 'INVALID_EMAIL'
+                alreadyLinked:
+                  summary: Email already linked to another account
+                  value:
+                    error: 'Bad Request'
+                    message: 'This BitCraft account is already linked to another platform profile'
+                    code: 'EMAIL_ALREADY_LINKED'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '503':
+          description: BitCraft verification API unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                apiUnavailable:
+                  value:
+                    error: 'Service Unavailable'
+                    message: 'BitCraft verification service is temporarily unavailable. Please try again later.'
+                    code: 'BITCRAFT_API_UNAVAILABLE'
+
+  /auth/link-bitcraft/verify:
+    post:
+      summary: Verify BitCraft account and complete linking
+      description: |
+        Completes the BitCraft account linking process by validating the verification code
+        and storing the verified email and player ID.
+
+        **Auth Required**: Yes (JWT token in cookie)
+
+        **Rate Limit**: 10 requests per user per hour (allows multiple retries for typos)
+
+        **Security**:
+        - Verification code expires after 15 minutes
+        - Maximum 3 incorrect attempts before requiring new code request
+        - Returned token from BitCraft API is discarded (not stored)
+      tags: [BitCraft Linking]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkBitCraftVerify'
+            examples:
+              valid:
+                value:
+                  email: 'player@example.com'
+                  code: '123456'
+      responses:
+        '200':
+          description: BitCraft account linked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkBitCraftVerifyResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: 'BitCraft account linked successfully'
+                    bitcraft:
+                      email: 'player@example.com'
+                      playerId: 'BC-12345'
+                      verifiedAt: '2025-10-12T10:30:00Z'
+        '400':
+          description: Invalid verification code or email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidCode:
+                  summary: Incorrect verification code
+                  value:
+                    error: 'Bad Request'
+                    message: 'Invalid verification code. You have 2 attempts remaining.'
+                    code: 'INVALID_CODE'
+                    attemptsRemaining: 2
+                codeExpired:
+                  summary: Verification code expired
+                  value:
+                    error: 'Bad Request'
+                    message: 'Verification code has expired. Please request a new code.'
+                    code: 'CODE_EXPIRED'
+                tooManyAttempts:
+                  summary: Maximum attempts exceeded
+                  value:
+                    error: 'Bad Request'
+                    message: 'Too many failed attempts. Please request a new verification code.'
+                    code: 'TOO_MANY_ATTEMPTS'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/link-bitcraft/unlink:
+    post:
+      summary: Unlink BitCraft account
+      description: |
+        Removes the link between the platform profile and BitCraft player account.
+        This is a soft delete - the link is marked inactive but preserved for audit.
+
+        **Auth Required**: Yes (JWT token in cookie)
+
+        **Note**: User can re-link the same or different BitCraft account after unlinking.
+      tags: [BitCraft Linking]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnlinkBitCraftRequest'
+            examples:
+              userRequest:
+                value:
+                  reason: 'Switching to a different BitCraft account'
+      responses:
+        '200':
+          description: BitCraft account unlinked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnlinkBitCraftResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: 'BitCraft account unlinked successfully'
+        '400':
+          description: No BitCraft account linked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                notLinked:
+                  value:
+                    error: 'Bad Request'
+                    message: 'No BitCraft account is currently linked'
+                    code: 'NOT_LINKED'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/profile:
+    get:
+      summary: Get user profile with all identities
+      description: |
+        Returns the complete user profile including platform ID, Discord identity,
+        and BitCraft link status. This is similar to `/auth/session` but may include
+        additional profile metadata in the future.
+
+        **Auth Required**: Yes (JWT token in cookie)
+      tags: [Profile]
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns service health status. Useful for monitoring and load balancers.
+      tags: [System]
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: 'ok'
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: '1.0.0'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sb-access-token
+      description: Supabase Auth JWT token (HTTP-only cookie)
+
+  schemas:
+    SessionResponse:
+      type: object
+      required: [user, discord]
+      properties:
+        user:
+          type: object
+          required: [id, createdAt]
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: Platform user ID
+            createdAt:
+              type: string
+              format: date-time
+              description: Account creation timestamp
+        discord:
+          type: object
+          required: [id, username, linkedAt]
+          properties:
+            id:
+              type: string
+              description: Discord user ID (snowflake)
+              example: '123456789012345678'
+            username:
+              type: string
+              description: Discord username
+              example: 'gamer123'
+            avatar:
+              type: string
+              nullable: true
+              description: Discord avatar hash
+              example: 'a1b2c3d4e5f6'
+            linkedAt:
+              type: string
+              format: date-time
+              description: When Discord account was linked
+        bitcraft:
+          type: object
+          nullable: true
+          description: BitCraft identity (null if not linked)
+          required: [email, playerId, verifiedAt, isActive]
+          properties:
+            email:
+              type: string
+              format: email
+              description: Verified BitCraft email
+            playerId:
+              type: string
+              description: BitCraft player ID
+              example: 'BC-12345'
+            verifiedAt:
+              type: string
+              format: date-time
+              description: When email was verified
+            isActive:
+              type: boolean
+              description: Whether link is currently active
+
+    LinkBitCraftRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          description: BitCraft account email address
+          example: 'player@example.com'
+
+    LinkBitCraftRequestResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: 'Verification code sent to player@example.com. Please check your email.'
+
+    LinkBitCraftVerify:
+      type: object
+      required: [email, code]
+      properties:
+        email:
+          type: string
+          format: email
+          description: BitCraft account email (must match request)
+        code:
+          type: string
+          minLength: 6
+          maxLength: 6
+          pattern: '^[0-9]{6}$'
+          description: 6-digit verification code from email
+          example: '123456'
+
+    LinkBitCraftVerifyResponse:
+      type: object
+      required: [success, message, bitcraft]
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: 'BitCraft account linked successfully'
+        bitcraft:
+          type: object
+          required: [email, playerId, verifiedAt]
+          properties:
+            email:
+              type: string
+              format: email
+            playerId:
+              type: string
+              example: 'BC-12345'
+            verifiedAt:
+              type: string
+              format: date-time
+
+    UnlinkBitCraftRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+          description: Optional reason for unlinking
+          example: 'Switching to a different BitCraft account'
+
+    UnlinkBitCraftResponse:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: 'BitCraft account unlinked successfully'
+
+    ProfileResponse:
+      allOf:
+        - $ref: '#/components/schemas/SessionResponse'
+
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Error type (HTTP status text)
+          example: 'Bad Request'
+        message:
+          type: string
+          description: Human-readable error message
+          example: 'Invalid email address'
+        code:
+          type: string
+          description: Machine-readable error code
+          example: 'INVALID_EMAIL'
+        attemptsRemaining:
+          type: integer
+          description: Remaining verification attempts (verification errors only)
+          example: 2
+
+  responses:
+    Unauthorized:
+      description: Authentication required or invalid session
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            notAuthenticated:
+              summary: No session token provided
+              value:
+                error: 'Unauthorized'
+                message: 'Authentication required'
+                code: 'UNAUTHORIZED'
+            invalidToken:
+              summary: Invalid or expired session token
+              value:
+                error: 'Unauthorized'
+                message: 'Invalid or expired session'
+                code: 'INVALID_SESSION'
+
+    RateLimited:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/ErrorResponse'
+              - type: object
+                properties:
+                  retryAfter:
+                    type: integer
+                    description: Seconds until rate limit resets
+                    example: 3600
+          examples:
+            rateLimited:
+              value:
+                error: 'Too Many Requests'
+                message: 'Rate limit exceeded. Please try again later.'
+                code: 'RATE_LIMIT_EXCEEDED'
+                retryAfter: 3600
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            serverError:
+              value:
+                error: 'Internal Server Error'
+                message: 'An unexpected error occurred. Please try again later.'
+                code: 'INTERNAL_ERROR'

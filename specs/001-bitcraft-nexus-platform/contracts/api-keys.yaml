@@ -1,0 +1,722 @@
+openapi: 3.1.0
+info:
+  title: BitCraft Nexus API Key Management
+  version: 1.0.0
+  description: |
+    Admin-only endpoints for managing API keys during the pilot phase.
+
+    **Pilot Phase Access Control**:
+    - API keys required for all protected endpoints during pilot
+    - Keys associated with metadata (name, permissions, usage tracking)
+    - Post-pilot: Feature flag disables key requirement for public API
+
+    **Security**:
+    - Keys stored hashed (SHA-256) in database
+    - Full key shown ONCE on creation, then only prefix displayed
+    - Keys never logged (only prefix for display)
+
+servers:
+  - url: https://nexus.bitcraftgame.com/api
+    description: Production API
+  - url: http://localhost:3000/api
+    description: Local development
+
+tags:
+  - name: Admin
+    description: Admin-only operations for API key management
+
+paths:
+  /admin/api-keys:
+    get:
+      summary: List all API keys
+      description: |
+        Returns a paginated list of all API keys with metadata and usage statistics.
+        Full keys are never returned - only key prefixes for display.
+
+        **Auth Required**: Yes (admin user only)
+      tags: [Admin]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Results per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: active
+          in: query
+          description: Filter by active status
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: API keys retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeysListResponse'
+              examples:
+                success:
+                  value:
+                    keys:
+                      - id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+                        name: 'Production Web UI'
+                        description: 'API key for web application in production'
+                        keyPrefix: 'bcn_a1b2c3d'
+                        permissions:
+                          scopes: ['read', 'write']
+                        isActive: true
+                        createdAt: '2025-10-01T12:00:00Z'
+                        createdBy:
+                          id: 'admin-user-id'
+                          username: 'admin'
+                        lastUsedAt: '2025-10-12T09:30:00Z'
+                        usageCount: 15420
+                      - id: 'b2c3d4e5-f6g7-8901-bcde-f12345678901'
+                        name: 'Discord Bot'
+                        description: 'API key for Discord bot instance'
+                        keyPrefix: 'bcn_x9y8z7w'
+                        permissions:
+                          scopes: ['read']
+                        isActive: true
+                        createdAt: '2025-10-01T12:05:00Z'
+                        createdBy:
+                          id: 'admin-user-id'
+                          username: 'admin'
+                        lastUsedAt: '2025-10-12T10:15:00Z'
+                        usageCount: 8520
+                    pagination:
+                      page: 1
+                      limit: 20
+                      total: 5
+                      totalPages: 1
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      summary: Create new API key
+      description: |
+        Generates a new API key with specified permissions. The full key is returned
+        ONCE in the response and must be saved by the client. Subsequent requests
+        will only show the key prefix.
+
+        **Auth Required**: Yes (admin user only)
+
+        **Key Format**: `bcn_{64-character-hex-string}`
+        **Hash Algorithm**: SHA-256 (stored in database)
+      tags: [Admin]
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApiKeyRequest'
+            examples:
+              webUI:
+                summary: Web UI production key
+                value:
+                  name: 'Production Web UI'
+                  description: 'API key for web application in production environment'
+                  permissions:
+                    scopes: ['read', 'write']
+              discordBot:
+                summary: Discord bot key
+                value:
+                  name: 'Discord Bot'
+                  description: 'Read-only key for Discord bot commands'
+                  permissions:
+                    scopes: ['read']
+              pilotUser:
+                summary: Pilot participant key
+                value:
+                  name: 'Pilot User - John Doe'
+                  description: 'Key for pilot program participant'
+                  permissions:
+                    scopes: ['read', 'write']
+                    rateLimit: 1000
+      responses:
+        '201':
+          description: API key created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateApiKeyResponse'
+              examples:
+                success:
+                  value:
+                    id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+                    name: 'Production Web UI'
+                    description: 'API key for web application in production environment'
+                    key: 'bcn_a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890'
+                    keyPrefix: 'bcn_a1b2c3d'
+                    permissions:
+                      scopes: ['read', 'write']
+                    isActive: true
+                    createdAt: '2025-10-12T10:30:00Z'
+                    message: 'API key created successfully. Save this key securely - it will not be shown again.'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /admin/api-keys/{keyId}:
+    get:
+      summary: Get API key details
+      description: |
+        Returns detailed information about a specific API key including usage statistics.
+        Full key is never returned - only key prefix.
+
+        **Auth Required**: Yes (admin user only)
+      tags: [Admin]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: keyId
+          in: path
+          required: true
+          description: API key ID (UUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: API key details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+    delete:
+      summary: Revoke API key
+      description: |
+        Revokes an API key by marking it inactive. The key is not deleted from the
+        database for audit trail purposes. Revoked keys immediately stop working.
+
+        **Auth Required**: Yes (admin user only)
+      tags: [Admin]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: keyId
+          in: path
+          required: true
+          description: API key ID (UUID)
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevokeApiKeyRequest'
+            examples:
+              withReason:
+                value:
+                  reason: 'Key compromised - unauthorized access detected'
+              withoutReason:
+                value: {}
+      responses:
+        '200':
+          description: API key revoked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevokeApiKeyResponse'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: 'API key revoked successfully'
+                    keyPrefix: 'bcn_a1b2c3d'
+                    revokedAt: '2025-10-12T10:45:00Z'
+        '400':
+          description: Key already revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                alreadyRevoked:
+                  value:
+                    error: 'Bad Request'
+                    message: 'API key is already revoked'
+                    code: 'KEY_ALREADY_REVOKED'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /admin/api-keys/{keyId}/usage:
+    get:
+      summary: Get API key usage statistics
+      description: |
+        Returns detailed usage statistics for a specific API key including request
+        counts over time, endpoint usage, and error rates.
+
+        **Auth Required**: Yes (admin user only)
+      tags: [Admin]
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: keyId
+          in: path
+          required: true
+          description: API key ID (UUID)
+          schema:
+            type: string
+            format: uuid
+        - name: startDate
+          in: query
+          description: Start date for usage statistics (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          description: End date for usage statistics (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Usage statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiKeyUsageResponse'
+              examples:
+                success:
+                  value:
+                    keyId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
+                    keyPrefix: 'bcn_a1b2c3d'
+                    period:
+                      start: '2025-10-01T00:00:00Z'
+                      end: '2025-10-12T23:59:59Z'
+                    totalRequests: 15420
+                    requestsByDate:
+                      - date: '2025-10-12'
+                        count: 1245
+                      - date: '2025-10-11'
+                        count: 1180
+                    requestsByEndpoint:
+                      - endpoint: '/api/auth/session'
+                        count: 8500
+                      - endpoint: '/api/auth/profile'
+                        count: 4200
+                      - endpoint: '/api/auth/link-bitcraft/request'
+                        count: 1850
+                    errorRate: 0.02
+                    averageResponseTime: 85
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sb-access-token
+      description: Supabase Auth JWT token (HTTP-only cookie, admin role required)
+
+  schemas:
+    ApiKeysListResponse:
+      type: object
+      required: [keys, pagination]
+      properties:
+        keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApiKeyListItem'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+
+    ApiKeyListItem:
+      type: object
+      required: [id, name, keyPrefix, permissions, isActive, createdAt, usageCount]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        keyPrefix:
+          type: string
+          description: First 11 characters of key for display
+          example: 'bcn_a1b2c3d'
+        permissions:
+          $ref: '#/components/schemas/ApiKeyPermissions'
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            username:
+              type: string
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+        usageCount:
+          type: integer
+          description: Total number of requests made with this key
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+        revokedBy:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            username:
+              type: string
+
+    CreateApiKeyRequest:
+      type: object
+      required: [name, permissions]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Human-readable name for the key
+          example: 'Production Web UI'
+        description:
+          type: string
+          maxLength: 500
+          description: Optional description
+          example: 'API key for web application in production environment'
+        permissions:
+          $ref: '#/components/schemas/ApiKeyPermissions'
+
+    CreateApiKeyResponse:
+      type: object
+      required: [id, name, key, keyPrefix, permissions, isActive, createdAt, message]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        key:
+          type: string
+          description: Full API key (ONLY returned on creation)
+          example: 'bcn_a1b2c3d4e5f67890abcdef1234567890abcdef1234567890abcdef1234567890'
+        keyPrefix:
+          type: string
+          example: 'bcn_a1b2c3d'
+        permissions:
+          $ref: '#/components/schemas/ApiKeyPermissions'
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        message:
+          type: string
+          example: 'API key created successfully. Save this key securely - it will not be shown again.'
+
+    ApiKeyResponse:
+      type: object
+      required: [id, name, keyPrefix, permissions, isActive, createdAt, usageCount]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        keyPrefix:
+          type: string
+        permissions:
+          $ref: '#/components/schemas/ApiKeyPermissions'
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        createdBy:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            username:
+              type: string
+        lastUsedAt:
+          type: string
+          format: date-time
+          nullable: true
+        usageCount:
+          type: integer
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+        revokedBy:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            username:
+              type: string
+        revokedReason:
+          type: string
+          nullable: true
+
+    RevokeApiKeyRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 500
+          description: Optional reason for revocation
+          example: 'Key compromised - unauthorized access detected'
+
+    RevokeApiKeyResponse:
+      type: object
+      required: [success, message, keyPrefix, revokedAt]
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: 'API key revoked successfully'
+        keyPrefix:
+          type: string
+          example: 'bcn_a1b2c3d'
+        revokedAt:
+          type: string
+          format: date-time
+
+    ApiKeyUsageResponse:
+      type: object
+      required: [keyId, keyPrefix, period, totalRequests, requestsByDate, requestsByEndpoint, errorRate]
+      properties:
+        keyId:
+          type: string
+          format: uuid
+        keyPrefix:
+          type: string
+        period:
+          type: object
+          required: [start, end]
+          properties:
+            start:
+              type: string
+              format: date-time
+            end:
+              type: string
+              format: date-time
+        totalRequests:
+          type: integer
+          description: Total requests in period
+        requestsByDate:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              count:
+                type: integer
+        requestsByEndpoint:
+          type: array
+          items:
+            type: object
+            properties:
+              endpoint:
+                type: string
+              count:
+                type: integer
+        errorRate:
+          type: number
+          format: float
+          description: Percentage of failed requests (0.0 - 1.0)
+          example: 0.02
+        averageResponseTime:
+          type: integer
+          description: Average response time in milliseconds
+          example: 85
+
+    ApiKeyPermissions:
+      type: object
+      required: [scopes]
+      properties:
+        scopes:
+          type: array
+          items:
+            type: string
+            enum: [read, write, admin]
+          minItems: 1
+          description: Permission scopes for this key
+          example: ['read', 'write']
+        rateLimit:
+          type: integer
+          minimum: 1
+          description: Optional rate limit override (requests per minute)
+          example: 1000
+
+    Pagination:
+      type: object
+      required: [page, limit, total, totalPages]
+      properties:
+        page:
+          type: integer
+          description: Current page number (1-indexed)
+        limit:
+          type: integer
+          description: Results per page
+        total:
+          type: integer
+          description: Total number of items
+        totalPages:
+          type: integer
+          description: Total number of pages
+
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Error type (HTTP status text)
+        message:
+          type: string
+          description: Human-readable error message
+        code:
+          type: string
+          description: Machine-readable error code
+
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalidPermissions:
+              summary: Invalid permissions scope
+              value:
+                error: 'Bad Request'
+                message: 'Permissions must include at least one scope'
+                code: 'INVALID_PERMISSIONS'
+            nameTooLong:
+              summary: Name exceeds maximum length
+              value:
+                error: 'Bad Request'
+                message: 'Name must be 100 characters or less'
+                code: 'NAME_TOO_LONG'
+
+    Unauthorized:
+      description: Authentication required or invalid session
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            notAuthenticated:
+              value:
+                error: 'Unauthorized'
+                message: 'Authentication required'
+                code: 'UNAUTHORIZED'
+
+    Forbidden:
+      description: Admin role required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            notAdmin:
+              value:
+                error: 'Forbidden'
+                message: 'Admin privileges required for this operation'
+                code: 'ADMIN_REQUIRED'
+
+    NotFound:
+      description: API key not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            keyNotFound:
+              value:
+                error: 'Not Found'
+                message: 'API key not found'
+                code: 'KEY_NOT_FOUND'
+
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            serverError:
+              value:
+                error: 'Internal Server Error'
+                message: 'An unexpected error occurred. Please try again later.'
+                code: 'INTERNAL_ERROR'

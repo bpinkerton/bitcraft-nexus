@@ -61,9 +61,9 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:54322/postgres
 SPACETIME_URI=wss://spacetime.bitcraftgame.com
 SPACETIME_MODULE=bitcraft_game_data
 
-# BitCraft Verification API (TBD - get from BitCraft team)
-BITCRAFT_API_URL=https://api.bitcraftgame.com
-BITCRAFT_API_KEY=your-api-key
+# BitCraft Verification API (Already live - no API key needed!)
+# API Base: https://api.bitcraftonline.com/authentication
+# No BITCRAFT_API_KEY environment variable needed
 
 # Discord OAuth (Create Discord app at https://discord.com/developers/applications)
 DISCORD_CLIENT_ID=your-discord-client-id
@@ -81,9 +81,11 @@ PILOT_MODE_ENABLED=true
 
 **Important Notes**:
 - Local Supabase runs on ports 54321 (API) and 54322 (Database)
-- Discord OAuth requires creating a Discord application
-- SpacetimeDB and BitCraft API credentials pending from BitCraft team
+- **Discord OAuth MUST be configured for local development** - authentication won't work without it (see Step 4)
+- **BitCraft API is already live** at `https://api.bitcraftonline.com/authentication` (no additional setup needed)
+- SpacetimeDB connection details will be provided separately
 - Rate limiting uses in-memory Map for local dev (no Redis required)
+- **Everything should work locally without any hosting infrastructure** - Supabase runs in Docker, Next.js runs on localhost
 
 ---
 

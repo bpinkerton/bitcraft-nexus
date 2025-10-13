@@ -154,10 +154,10 @@ Platform administrators need to control API access during the pilot phase. The s
 - **FR-002**: System MUST create a unique platform profile ID for each new user upon first successful authentication
 - **FR-003**: System MUST store Discord user ID and username obtained from OAuth for each user profile
 - **FR-004**: System MUST provide a profile linking interface for users to associate their BitCraft player ID
-- **FR-005**: System MUST verify BitCraft account ownership via email verification flow: user enters their BitCraft email, system sends POST request to trigger access code delivery, user enters received code, system validates via POST request and confirms successful verification (discarding returned token), then stores the verified email and retrieves associated player ID
-- **FR-006**: System MUST validate that BitCraft player IDs are not already associated with another platform profile before linking
-- **FR-007**: Users MUST be able to view their linked identities (platform ID, Discord ID, BitCraft player ID) in account settings
-- **FR-008**: Users MUST be able to unlink their BitCraft player ID and link a different one (with appropriate validation)
+- **FR-005**: System MUST verify BitCraft account ownership via email verification flow: user enters their BitCraft email, system sends POST request to trigger access code delivery, user enters received code, system validates via POST request and confirms successful verification (discarding returned token), then stores the verified email. Note: Player ID extraction is deferred pending exploration of SpacetimeDB WebSocket schema (JWT `hex_identity` and `sub` fields are not the player IDs required for game data features).
+- **FR-006**: System MUST validate that BitCraft email addresses are not already associated with another platform profile before linking
+- **FR-007**: Users MUST be able to view their linked identities (platform ID, Discord ID, BitCraft email) in account settings
+- **FR-008**: Users MUST be able to unlink their BitCraft email and link a different one (with appropriate validation)
 - **FR-009**: System MUST maintain user session state across page navigation and browser restarts until explicit sign-out
 - **FR-010**: System MUST handle Discord OAuth failures gracefully with user-friendly error messages and retry options
 
@@ -235,11 +235,11 @@ Platform administrators need to control API access during the pilot phase. The s
 
 ### Key Entities
 
-- **User Profile**: Represents a platform user with three associated identities (platform ID generated on first auth, Discord ID from OAuth, BitCraft player ID from email verification). Contains account settings, preferences, creation/update timestamps. Links to all user-generated content in future features.
+- **User Profile**: Represents a platform user with three associated identities (platform ID generated on first auth, Discord ID from OAuth, BitCraft email from verification). Contains account settings, preferences, creation/update timestamps. Links to all user-generated content in future features. Note: BitCraft player ID will be added in future after WebSocket schema exploration.
 
 - **Discord Integration Record**: Associates a Discord user ID (from OAuth) with a platform profile ID. Contains Discord username for display purposes. Used by Discord bot for command authentication. Marked inactive if Discord account is deleted or unlinked.
 
-- **BitCraft Identity Link**: Associates a verified BitCraft email address with its corresponding player ID. Created during the two-step verification process. Enforces uniqueness to prevent duplicate linking. Contains verification timestamp and verification method metadata.
+- **BitCraft Identity Link**: Associates a verified BitCraft email address with the platform profile. Created during the two-step verification process. Enforces uniqueness to prevent duplicate linking. Contains verification timestamp and verification method metadata. Note: Player ID field deferred until SpacetimeDB WebSocket schema is explored to determine correct player ID retrieval method (JWT `hex_identity` and `sub` fields are not the required player IDs).
 
 - **Game Data Cache Entry**: System-level cache of responses from the normalized Game Data API. Contains cache key (endpoint/parameters), response body (JSON), data category (static/semi-static/dynamic/real-time), category-specific TTL (24h/6h/1h/5min), fetch timestamp, and staleness indicator. Enables offline resilience and reduces API load.
 

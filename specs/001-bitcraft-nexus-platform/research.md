@@ -135,67 +135,119 @@ const TTL_CONFIG = {
 
 ### 3. BitCraft Email Verification API Integration
 
-**Decision**: Implement two-step verification flow with API client wrapper
+**Decision**: Implement two-step verification flow matching existing spacetime-auth module pattern
 
-**Assumption**: BitCraft provides two POST endpoints (trigger code delivery, validate code) - **NEEDS EXTERNAL CONFIRMATION**
+**Confirmed API Details**: (from scripts/modules/spacetime-auth.ts)
+- **Base URL**: `https://api.bitcraftonline.com/authentication`
+- **Step 1**: `POST /request-access-code?email={email}` (query param, not JSON body)
+- **Step 2**: `POST /authenticate?email={email}&accessCode={code}` (query params)
+- **Access Code Format**: 6-character alphanumeric (e.g., "ABC123")
+- **Response**: JWT token (string or object with `token` field)
+- **Use native `fetch` API** (no Axios dependency)
 
 **Implementation Pattern**:
 ```typescript
 // lib/bitcraft-api/verification.ts
+const AUTH_API_BASE = 'https://api.bitcraftonline.com/authentication';
+
 export class BitCraftVerificationClient {
-  private baseUrl: string
-
-  constructor() {
-    this.baseUrl = process.env.BITCRAFT_API_URL!
-  }
-
-  // Step 1: Request access code
+  // Step 1: Request access code (sends email with 6-char code)
   async requestAccessCode(email: string): Promise<{ success: boolean }> {
-    const response = await fetch(`${this.baseUrl}/verify/request`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
-    })
+    const response = await fetch(
+      `${AUTH_API_BASE}/request-access-code?email=${encodeURIComponent(email)}`,
+      { method: 'POST' }
+    )
 
     if (!response.ok) {
-      throw new VerificationError('Failed to request access code')
+      throw new VerificationError(
+        `Failed to request access code: ${response.status} ${response.statusText}`
+      )
     }
 
-    return response.json()
+    return { success: true }
   }
 
-  // Step 2: Verify code and get player ID
+  // Step 2: Verify code - returns JWT token (which we discard per spec)
   async verifyCode(email: string, code: string): Promise<{ playerId: string }> {
-    const response = await fetch(`${this.baseUrl}/verify/confirm`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, code })
-    })
+    const response = await fetch(
+      `${AUTH_API_BASE}/authenticate?email=${encodeURIComponent(email)}&accessCode=${code}`,
+      { method: 'POST' }
+    )
 
     if (!response.ok) {
-      throw new VerificationError('Invalid verification code')
+      if (response.status === 401 || response.status === 403) {
+        throw new VerificationError('Invalid access code')
+      }
+      throw new VerificationError(
+        `Authentication failed: ${response.status} ${response.statusText}`
+      )
     }
 
-    const { player_id, token } = await response.json()
-    // Discard token as per spec, only store player_id
-    return { playerId: player_id }
+    const authData = await response.json()
+
+    // API returns JWT token (as string or object with token field)
+    let token: string
+    if (typeof authData === 'string') {
+      token = authData
+    } else {
+      token = authData.token || authData.authToken || authData.access_token
+    }
+
+    if (!token) {
+      throw new VerificationError('No token in authentication response')
+    }
+
+    // Extract player ID from JWT payload
+    const playerId = this.extractPlayerIdFromToken(token)
+
+    // IMPORTANT: Discard token - we only store email and player ID
+    // (Unlike spacetime-auth which stores SPACETIME_AUTH_TOKEN)
+    return { playerId }
+  }
+
+  private extractPlayerIdFromToken(token: string): string {
+    try {
+      const parts = token.split('.')
+      if (parts.length !== 3) {
+        throw new Error('Invalid JWT format')
+      }
+
+      const payload = JSON.parse(
+        Buffer.from(parts[1], 'base64').toString('utf-8')
+      )
+
+      // Extract player ID from JWT claims
+      // Adjust field name based on actual token structure
+      const playerId = payload.sub || payload.userId || payload.player_id || payload.playerId
+
+      if (!playerId) {
+        throw new Error('No player ID found in token')
+      }
+
+      return playerId
+    } catch (error) {
+      throw new VerificationError('Failed to parse authentication token')
+    }
   }
 }
 ```
 
 **Error Handling**:
-- Timeout (30s): Show retry option
-- Invalid code: Allow 3 attempts before rate limit
-- Email already linked: Prevent duplicate linking with clear error message
-- API unavailable: Queue verification request (future enhancement)
+- **401/403**: Invalid access code → Allow 3 attempts before rate limit
+- **Non-2xx**: API error → Show retry option
+- **Invalid JWT**: Token parsing fails → Log error, ask user to retry
+- **Email already linked**: Check uniqueness before calling API
+- **API unavailable**: Catch network errors, show friendly message
 
 **Security Considerations**:
 - Rate limit verification attempts per IP (10/hour)
 - Store verification attempts in audit log
+- Never log full token (only first 10 chars for debugging if needed)
 - Never expose raw API responses to client
 
-**References**:
-- PENDING: BitCraft API documentation (not publicly available yet)
+**Key Difference from SpacetimeDB Auth**:
+- **SpacetimeDB**: Stores `SPACETIME_AUTH_TOKEN` for future API calls
+- **BitCraft Profile Linking**: Extracts player ID, discards token (one-time verification)
 
 ---
 
@@ -577,6 +629,7 @@ export async function auditLog(data: AuditLogEntry) {
 | **Discord Bot** | discord.js | 14+ | Mature, well-documented, TypeScript support |
 | **Rate Limiting** | @upstash/ratelimit | Latest | Distributed, Vercel KV compatible |
 | **Validation** | Zod | Latest | TypeScript-first schema validation |
+| **API Mocking** | MSW (Mock Service Worker) | 2+ | WebSocket + HTTP mocking, universal |
 | **Package Manager** | pnpm | 8+ | Fast, disk-efficient, strict |
 | **Deployment** | Vercel | - | Optimized for Next.js, serverless functions |
 
@@ -646,6 +699,206 @@ NEXT_PUBLIC_APP_URL=https://nexus.bitcraftgame.com
 1. **Hosting Provider**: Vercel assumed, Docker containerization for flexibility
 2. **Domain Name**: nexus.bitcraftgame.com assumed
 3. **Admin UI**: Defer to post-pilot, manual SQL for API key management acceptable initially
+
+---
+
+### 9. WebSocket Mocking for SpacetimeDB Testing
+
+**Decision**: Use MSW (Mock Service Worker) v2+ with WebSocket support for local development and testing
+
+**Rationale**:
+- MSW is the first and currently most comprehensive API mocking library with native WebSocket support
+- Supports raw WebSocket protocol, Socket.IO, and GraphQL WS
+- Works across all environments (browser, Node.js, Jest, Vitest) without additional configuration
+- Type-safe mocking with TypeScript support
+- Framework and tool agnostic - no special setup required for Next.js
+
+**Implementation Pattern**:
+```typescript
+// mocks/spacetime/handlers.ts
+import { ws } from 'msw'
+
+export const spacetimeHandlers = [
+  ws.link('wss://spacetime.bitcraftgame.com/*'),
+
+  ws.on('connection', ({ client }) => {
+    // Mock SpacetimeDB connection handshake
+    client.send(JSON.stringify({
+      type: 'connected',
+      timestamp: Date.now()
+    }))
+
+    // Listen for query requests
+    client.addEventListener('message', (event) => {
+      const message = JSON.parse(event.data)
+
+      if (message.type === 'query') {
+        // Return mock game data based on query
+        const mockData = generateMockGameData(message.query)
+        client.send(JSON.stringify({
+          type: 'queryResult',
+          data: mockData
+        }))
+      }
+    })
+  })
+]
+
+// Mock data generators for different SpacetimeDB tables
+function generateMockGameData(query: Query) {
+  switch (query.table) {
+    case 'players':
+      return {
+        rows: [
+          { id: '1', name: 'TestPlayer', online: true },
+          { id: '2', name: 'DevPlayer', online: false }
+        ]
+      }
+    case 'territories':
+      return {
+        rows: [
+          { id: 't1', owner: '1', name: 'Home Base', population: 50 }
+        ]
+      }
+    default:
+      return { rows: [] }
+  }
+}
+```
+
+**Test Setup**:
+```typescript
+// mocks/browser.ts (for browser/dev environment)
+import { setupWorker } from 'msw/browser'
+import { spacetimeHandlers } from './spacetime/handlers'
+
+export const worker = setupWorker(...spacetimeHandlers)
+
+// mocks/server.ts (for Node.js/testing)
+import { setupServer } from 'msw/node'
+import { spacetimeHandlers } from './spacetime/handlers'
+
+export const server = setupServer(...spacetimeHandlers)
+
+// vitest.setup.ts
+import { server } from './mocks/server'
+
+beforeAll(() => server.listen())
+afterEach(() => server.resetHandlers())
+afterAll(() => server.close())
+```
+
+**Environment-Specific Behavior**:
+```typescript
+// lib/spacetime/client.ts
+import { SpacetimeDBClient } from '@clockworklabs/spacetime-sdk'
+
+export async function createSpacetimeClient() {
+  const uri = process.env.NODE_ENV === 'test'
+    ? 'wss://localhost:8080/mock'  // MSW intercepts this
+    : process.env.SPACETIME_URI!
+
+  const client = new SpacetimeDBClient(uri)
+  await client.connect()
+  return client
+}
+```
+
+**Advantages over Alternatives**:
+
+| Library | WebSocket Support | TypeScript | Multi-Environment | Status |
+|---------|------------------|-----------|-------------------|--------|
+| **MSW** | ✅ Native (v2+) | ✅ Full | ✅ Browser + Node | Active |
+| **Mirage JS** | ❌ No native support | ✅ Yes | ✅ Yes | Active but limited |
+| **mock-socket** | ✅ Native | ✅ Declarations included | ❌ Browser API only | Maintenance mode |
+| **jest-websocket-mock** | ⚠️ Browser API only | ✅ Yes | ❌ Jest only | Limited |
+
+**Why Not Mirage JS**:
+- Mirage JS has **no native WebSocket support** (GitHub issues #588, #23 open since 2019)
+- Requires manual integration with `mock-socket` library
+- `mock-socket` only implements browser WebSocket API (incompatible with `ws` library used by SpacetimeDB)
+- Does not support Socket.IO
+- More complex setup for WebSocket scenarios
+
+**Why Not mock-socket**:
+- Only implements browser WebSocket API
+- SpacetimeDB SDK may use Node.js `ws` library internally (incompatible)
+- Limited TypeScript support (declarations only, not type-safe)
+- Lower-level API requires more boilerplate
+
+**Why Not jest-websocket-mock**:
+- Jest-specific (not compatible with Vitest or browser tests)
+- Same browser API limitation as mock-socket
+- Requires separate setup for development vs testing
+
+**MSW Advantages**:
+- **First-class WebSocket support**: Works with raw WebSocket, Socket.IO, and GraphQL WS
+- **Universal**: Same mocks work in browser, Node.js, Jest, Vitest, Playwright
+- **Type-safe**: Full TypeScript support with IntelliSense
+- **Network-level interception**: No changes to application code required
+- **Active development**: v2.0+ released in 2024 with WebSocket support
+
+**Development Workflow**:
+1. **Local Dev**: Enable MSW in browser (`worker.start()` in dev mode)
+2. **Unit Tests**: MSW server automatically intercepts WebSocket connections
+3. **Integration Tests**: Same MSW handlers work in Playwright/Cypress
+4. **E2E Tests**: Disable MSW to test against real SpacetimeDB
+
+**Mock Data Organization**:
+```
+mocks/
+├── browser.ts              # Browser worker setup
+├── server.ts               # Node.js server setup
+└── spacetime/
+    ├── handlers.ts         # WebSocket handlers
+    ├── data/
+    │   ├── players.ts      # Mock player data
+    │   ├── territories.ts  # Mock territory data
+    │   └── economy.ts      # Mock economy data
+    └── scenarios/
+        ├── empty-world.ts  # Scenario: no data
+        ├── active-game.ts  # Scenario: typical active game
+        └── stress-test.ts  # Scenario: high load data
+```
+
+**BitCraft API Mocking**:
+MSW also handles REST API mocking for BitCraft verification API:
+
+```typescript
+// mocks/bitcraft/handlers.ts
+import { http, HttpResponse } from 'msw'
+
+export const bitcraftHandlers = [
+  http.post('https://api.bitcraftonline.com/authentication/request-access-code', () => {
+    return HttpResponse.json({ success: true })
+  }),
+
+  http.post('https://api.bitcraftonline.com/authentication/authenticate', () => {
+    const mockToken = generateMockJWT({ playerId: 'test-player-123' })
+    return HttpResponse.json({ token: mockToken })
+  })
+]
+```
+
+**Deployment Considerations**:
+- MSW worker files excluded from production build (conditional import)
+- Environment variable: `ENABLE_API_MOCKING=true` for staging environments
+- Zero runtime overhead in production (tree-shaken out)
+
+**References**:
+- MSW Documentation: https://mswjs.io/docs/
+- MSW WebSocket API: https://mswjs.io/docs/api/ws
+- MSW Comparison: https://mswjs.io/docs/comparison/
+- GitHub Issues: Mirage JS #588 (WebSocket support requested), mock-socket limitations
+
+**Dependencies to Add**:
+```json
+{
+  "devDependencies": {
+    "msw": "^2.0.0"
+  }
+}
+```
 
 ---
 

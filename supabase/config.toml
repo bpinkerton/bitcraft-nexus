@@ -263,6 +263,16 @@ max_frequency = "5s"
 # Use an external OAuth provider. The full list of providers are: `apple`, `azure`, `bitbucket`,
 # `discord`, `facebook`, `github`, `gitlab`, `google`, `keycloak`, `linkedin_oidc`, `notion`, `twitch`,
 # `twitter`, `slack`, `spotify`, `workos`, `zoom`.
+
+# Discord OAuth configuration for BitCraft Nexus Platform
+[auth.external.discord]
+enabled = true
+client_id = "env(DISCORD_CLIENT_ID)"
+# DO NOT commit your OAuth provider secret to git. Use environment variable substitution instead:
+secret = "env(DISCORD_CLIENT_SECRET)"
+# Overrides the default auth redirectUrl.
+redirect_uri = "http://127.0.0.1:54321/auth/v1/callback"
+
 [auth.external.apple]
 enabled = false
 client_id = ""

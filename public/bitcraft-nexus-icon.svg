@@ -1,0 +1,80 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#9333EA;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#7C3AED;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </linearGradient>
+    
+    <linearGradient id="centerGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </linearGradient>
+    
+    <filter id="outerGlow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feColorMatrix in="coloredBlur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.4 0"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <filter id="innerGlow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feColorMatrix in="coloredBlur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.3 0"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Dark background -->
+  <rect width="512" height="512" fill="#0a0a0f" rx="90"/>
+  
+  <!-- Main logo centered -->
+  <g transform="translate(256, 256) scale(1.45)">
+    <!-- Outer hexagon ring - thicker, cleaner -->
+    <polygon points="0,-140 121,-70 121,70 0,140 -121,70 -121,-70" 
+             fill="none"
+             stroke="url(#hexGrad)" 
+             stroke-width="16"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             filter="url(#outerGlow)"/>
+    
+    <!-- Three accent lines pointing inward -->
+    <g filter="url(#innerGlow)">
+      <!-- Top line -->
+      <line x1="0" y1="-115" x2="0" y2="-55" 
+            stroke="#06B6D4" 
+            stroke-width="10"
+            stroke-linecap="round"/>
+      <!-- Bottom-right line -->
+      <line x1="100" y1="57" x2="48" y2="27" 
+            stroke="#06B6D4" 
+            stroke-width="10"
+            stroke-linecap="round"/>
+      <!-- Bottom-left line -->
+      <line x1="-100" y1="57" x2="-48" y2="27" 
+            stroke="#06B6D4" 
+            stroke-width="10"
+            stroke-linecap="round"/>
+    </g>
+    
+    <!-- Inner hexagon - the nexus -->
+    <polygon points="0,-45 39,-22 39,22 0,45 -39,22 -39,-22" 
+             fill="#0a0a0f" 
+             stroke="url(#centerGrad)" 
+             stroke-width="8"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             filter="url(#outerGlow)"/>
+    
+    <!-- Center point with strong glow -->
+    <circle cx="0" cy="0" r="30" fill="#3B82F6" opacity="0.2" filter="url(#outerGlow)"/>
+    <circle cx="0" cy="0" r="18" fill="url(#centerGrad)" filter="url(#innerGlow)"/>
+    <circle cx="0" cy="0" r="9" fill="#fff"/>
+  </g>
+</svg>

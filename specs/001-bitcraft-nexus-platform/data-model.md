@@ -164,7 +164,7 @@ export type InsertDiscordLink = typeof discordLinks.$inferInsert
 
 ### 3. `bitcraft_links` - BitCraft Player Identity Association
 
-Links platform users to BitCraft player accounts via email verification. Stores verified email and player ID.
+Links platform users to BitCraft player accounts via email verification. Currently stores only the verified email address. Player ID extraction is deferred pending WebSocket schema exploration (the JWT `hex_identity` and `sub` fields are not the player IDs we need).
 
 **Purpose**: Enable BitCraft-specific features (future: empire planning, resource tracking)
 
@@ -176,7 +176,8 @@ export const bitcraftLinks = pgTable('bitcraft_links', {
     .references(() => users.id, { onDelete: 'cascade' })
     .notNull(),
   bitcraftEmail: text('bitcraft_email').notNull().unique(),
-  bitcraftPlayerId: text('bitcraft_player_id').notNull().unique(),
+  // NOTE: Player ID extraction deferred - JWT hex_identity/sub are not player IDs
+  // Future: Add bitcraft_player_id after exploring SpacetimeDB WebSocket schema
   verifiedAt: timestamp('verified_at', { withTimezone: true }).defaultNow().notNull(),
   verificationMethod: text('verification_method').default('email').notNull(),
   isActive: boolean('is_active').default(true).notNull(),
@@ -184,8 +185,8 @@ export const bitcraftLinks = pgTable('bitcraft_links', {
   unlinkedReason: text('unlinked_reason')
 }, (table) => ({
   userIdIdx: index('bitcraft_links_user_id_idx').on(table.userId),
-  emailIdx: uniqueIndex('bitcraft_links_email_idx').on(table.bitcraftEmail),
-  playerIdIdx: uniqueIndex('bitcraft_links_player_id_idx').on(table.bitcraftPlayerId)
+  emailIdx: uniqueIndex('bitcraft_links_email_idx').on(table.bitcraftEmail)
+  // Future: playerIdIdx when bitcraft_player_id column added
 }))
 
 export type BitCraftLink = typeof bitcraftLinks.$inferSelect
@@ -196,23 +197,25 @@ export type InsertBitCraftLink = typeof bitcraftLinks.$inferInsert
 - `id` (UUID, PK): Link record ID
 - `user_id` (UUID, FK → users.id): Platform user
 - `bitcraft_email` (TEXT, UNIQUE): Verified BitCraft email address
-- `bitcraft_player_id` (TEXT, UNIQUE): BitCraft player ID from verification API
 - `verified_at` (TIMESTAMP): When email was successfully verified
 - `verification_method` (TEXT): Method used (always 'email' for now)
 - `is_active` (BOOLEAN): Whether link is currently active
 - `unlinked_at` (TIMESTAMP, NULLABLE): When user unlinked (if applicable)
 - `unlinked_reason` (TEXT, NULLABLE): Reason for unlinking (user request, duplicate, etc.)
 
+**Deferred Fields** (future enhancement):
+- `bitcraft_player_id` (TEXT, UNIQUE): Player ID from SpacetimeDB (requires WebSocket schema exploration)
+  - JWT sample shows `hex_identity` and `sub` fields, but these are not the player IDs we need
+  - Will add after determining correct player ID retrieval method via WebSocket queries
+
 **Indexes**:
 - Primary key on `id`
 - Index on `user_id` for lookups by platform user
 - Unique index on `bitcraft_email` to prevent duplicate linking
-- Unique index on `bitcraft_player_id` to prevent duplicate linking
 
 **Constraints**:
 - `user_id` references `users.id` with CASCADE delete
 - `bitcraft_email` must be unique (one BitCraft account per platform profile)
-- `bitcraft_player_id` must be unique (one platform profile per BitCraft account)
 - Only one active link per `user_id`
 
 **Lifecycle**:
@@ -222,8 +225,7 @@ export type InsertBitCraftLink = typeof bitcraftLinks.$inferInsert
 
 **Validation Rules**:
 - `bitcraft_email` must be valid email format
-- `bitcraft_player_id` must match BitCraft's player ID format (TBD based on API docs)
-- Cannot link if email or player ID already associated with another active profile
+- Cannot link if email already associated with another active profile
 
 **Edge Cases**:
 - **Duplicate linking attempt**: Check uniqueness, return error with clear message
@@ -263,9 +265,25 @@ export const apiKeys = pgTable('api_keys', {
 
 // TypeScript type for permissions JSONB
 export interface ApiKeyPermissions {
-  scopes: ('read' | 'write' | 'admin')[]
-  rateLimit?: number // Override default rate limit
+  scopes: ApiKeyScope[]
+  rateLimit?: number // Override default rate limit (requests per minute)
 }
+
+// Permission scope types
+export type ApiKeyScope =
+  | 'read'      // Super scope: read-only access to all resources
+  | 'write'     // Super scope: read + write access to user's own resources
+  | 'admin'     // Super scope: full access including API key management
+  | 'read:profile'        // Fine-grained: read user profile data
+  | 'write:profile'       // Fine-grained: update user profile
+  | 'read:game-data'      // Fine-grained: query game data API
+  | 'write:bitcraft-link' // Fine-grained: link/unlink BitCraft accounts
+  | 'admin:api-keys'      // Fine-grained: manage API keys
+
+// Scope hierarchy (super scopes include all fine-grained scopes)
+// 'read' → includes: read:profile, read:game-data
+// 'write' → includes: read scopes + write:profile, write:bitcraft-link
+// 'admin' → includes: write scopes + admin:api-keys
 
 export type ApiKey = typeof apiKeys.$inferSelect
 export type InsertApiKey = typeof apiKeys.$inferInsert

@@ -1,41 +1,45 @@
-<a href="https://demo-nextjs-with-supabase.vercel.app/">
-  <img alt="Next.js and Supabase Starter Kit - the fastest way to build apps with Next.js and Supabase" src="https://demo-nextjs-with-supabase.vercel.app/opengraph-image.png">
-  <h1 align="center">Next.js and Supabase Starter Kit</h1>
-</a>
+# BitCraft Nexus
 
-<p align="center">
- The fastest way to build apps with Next.js and Supabase
-</p>
+A modern monorepo containing a Next.js web application and Discord integration bot, built with TypeScript, Supabase, and Drizzle ORM.
 
-<p align="center">
-  <a href="#features"><strong>Features</strong></a> ·
-  <a href="#demo"><strong>Demo</strong></a> ·
-  <a href="#deploy-to-vercel"><strong>Deploy to Vercel</strong></a> ·
-  <a href="#clone-and-run-locally"><strong>Clone and run locally</strong></a> ·
-  <a href="#contributing"><strong>Contributing</strong></a> ·
-  <a href="#feedback-and-issues"><strong>Feedback and issues</strong></a>
-  <a href="#more-supabase-examples"><strong>More Examples</strong></a>
-</p>
-<br/>
+## 🏗️ Monorepo Structure
 
-## Features
+This repository contains multiple applications and shared packages:
 
-- Works across the entire [Next.js](https://nextjs.org) stack
-    - App Router
-    - Pages Router
-    - Middleware
-    - Client
-    - Server
-    - It just works!
+```
+bitcraft-nexus/
+├── apps/
+│   ├── web/                 # Next.js web application
+│   └── discord-bot/         # Discord integration bot
+├── packages/
+│   ├── shared/              # Shared utilities and types
+│   └── database/            # Centralized database schema
+└── docs/                    # Project documentation
+```
+
+## ✨ Features
+
+### Web Application
+- **[Next.js 15](https://nextjs.org)** with App Router
 - **[Drizzle ORM](https://orm.drizzle.team/)** - Type-safe database queries with PostgreSQL
-- **supabase-ssr** - A package to configure Supabase Auth to use cookies
-- **Automated local setup** - Run `pnpm install` and you're ready to code
-- Password-based authentication block installed via the [Supabase UI Library](https://supabase.com/ui/docs/nextjs/password-based-auth)
-- Styling with [Tailwind CSS](https://tailwindcss.com)
-- Components with [shadcn/ui](https://ui.shadcn.com/)
-- **Conventional Commits** enforcement with commitlint and husky
-- Optional deployment with [Supabase Vercel Integration and Vercel deploy](#deploy-your-own)
-    - Environment variables automatically assigned to Vercel project
+- **[Supabase](https://supabase.com)** - Authentication and database
+- **[Tailwind CSS](https://tailwindcss.com)** - Styling
+- **[shadcn/ui](https://ui.shadcn.com/)** - UI components
+- Password-based authentication
+- Automated local setup
+
+### Discord Bot
+- **[Discord.js](https://discord.js.org)** - Discord API integration
+- Slash commands support
+- Shared database access
+- Command management system
+- Health monitoring
+
+### Shared Packages
+- **@bitcraft/shared** - Common utilities, types, and configurations
+- **@bitcraft/database** - Centralized database schema and client
+- Type-safe shared dependencies
+- Consistent tooling across applications
 
 ## Demo
 
@@ -81,10 +85,15 @@ This project features automated local development setup with Supabase:
 3. **Start the development server**
 
     ```bash
-    pnpm dev
+    # Start web application only
+    pnpm dev:web
+    
+    # Or start both applications
+    pnpm dev:all
     ```
 
-    The app should now be running on [localhost:3000](http://localhost:3000/).
+    The web app should now be running on [localhost:3000](http://localhost:3000/).
+    The Discord bot will connect to Discord when configured with proper tokens.
 
 4. **Access Supabase Studio** (optional)
 
@@ -120,14 +129,36 @@ If you prefer manual setup or the automated setup fails:
 3. Start the development server:
 
     ```bash
-    pnpm dev
+    # Start web application only
+    pnpm dev:web
+    
+    # Or start both applications
+    pnpm dev:all
     ```
 
 ### Useful Commands
 
 ```bash
 # Development
-pnpm dev                  # Start Next.js dev server
+pnpm dev                  # Start web application
+pnpm dev:web              # Start web application only
+pnpm dev:bot              # Start Discord bot only
+pnpm dev:all              # Start both applications
+
+# Building
+pnpm build                # Build all packages
+pnpm build:web            # Build web application only
+pnpm build:bot            # Build Discord bot only
+
+# Deployment
+pnpm deploy:web           # Deploy web application
+pnpm deploy:bot           # Deploy Discord bot
+pnpm deploy:all            # Deploy both applications
+
+# Cleaning
+pnpm clean                # Clean all packages
+pnpm clean:web            # Clean web application
+pnpm clean:bot            # Clean Discord bot
 
 # Supabase
 pnpm supabase:status      # Check Supabase status
@@ -136,7 +167,7 @@ pnpm supabase:restart     # Restart Supabase containers
 pnpm supabase:reset       # Reset database to initial state
 pnpm run setup:supabase   # Re-run Supabase setup
 
-# Drizzle ORM
+# Database
 pnpm db:generate          # Generate migrations from schema
 pnpm db:push              # Push schema to database
 pnpm db:studio            # Open Drizzle Studio (database GUI)

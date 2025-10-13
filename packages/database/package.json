@@ -1,0 +1,49 @@
+{
+    "name": "@bitcraft/database",
+    "version": "0.1.0",
+    "private": true,
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.js"
+        },
+        "./client": {
+            "types": "./dist/client.d.ts",
+            "import": "./dist/client.js",
+            "require": "./dist/client.js"
+        },
+        "./schema": {
+            "types": "./dist/schema/index.d.ts",
+            "import": "./dist/schema/index.js",
+            "require": "./dist/schema/index.js"
+        },
+        "./utils": {
+            "types": "./dist/utils/index.d.ts",
+            "import": "./dist/utils/index.js",
+            "require": "./dist/utils/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "lint": "eslint src --ext .ts",
+        "test": "vitest",
+        "test:watch": "vitest --watch",
+        "test:coverage": "vitest --coverage",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "drizzle-orm": "^0.44.6",
+        "postgres": "^3.4.7"
+    },
+    "devDependencies": {
+        "@types/node": "^20",
+        "drizzle-kit": "^0.31.5",
+        "eslint": "^9",
+        "typescript": "^5",
+        "vitest": "^1.0.0"
+    }
+}

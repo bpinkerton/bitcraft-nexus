@@ -4,7 +4,7 @@
  */
 
 export interface ModuleResult {
-    status: 'complete' | 'skipped' | 'failed';
+    status: "complete" | "skipped" | "failed";
     message: string;
 }
 

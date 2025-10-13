@@ -57,8 +57,8 @@ export default function SQLExplorerPage() {
                 const v9Schema = schemaData?.V9 || schemaData;
                 const publicTables =
                     v9Schema?.tables
-                        ?.filter(t => t.table_access?.Public)
-                        ?.map(t => t.name)
+                        ?.filter((t: SchemaTable) => t.table_access?.Public)
+                        ?.map((t: SchemaTable) => t.name)
                         ?.sort() || [];
 
                 setTables(publicTables);

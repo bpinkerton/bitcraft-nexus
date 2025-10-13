@@ -2,8 +2,8 @@
  * Utilities for executing shell commands
  */
 
-import { spawn } from 'child_process';
-import type { ExecResult } from '../types';
+import { spawn } from "child_process";
+import type { ExecResult } from "../types";
 
 /**
  * Execute a shell command and return the result
@@ -22,36 +22,36 @@ export function exec(
         silent?: boolean; // Completely suppress output (ignore stdio)
     } = {}
 ): Promise<ExecResult> {
-    return new Promise((resolve) => {
-        let stdout = '';
-        let stderr = '';
+    return new Promise(resolve => {
+        let stdout = "";
+        let stderr = "";
 
         // Determine stdio mode
         let stdio: any;
         if (options.silent) {
-            stdio = 'ignore'; // Completely ignore all stdio
+            stdio = "ignore"; // Completely ignore all stdio
         } else if (options.streamOutput) {
-            stdio = ['inherit', 'pipe', 'pipe'];
+            stdio = ["inherit", "pipe", "pipe"];
         } else {
-            stdio = ['pipe', 'pipe', 'pipe'];
+            stdio = ["pipe", "pipe", "pipe"];
         }
 
         // On Windows, use shell for command resolution, but pass full command string
-        const isWindows = process.platform === 'win32';
+        const isWindows = process.platform === "win32";
         const proc = isWindows
-            ? spawn(command + ' ' + args.join(' '), [], {
-                cwd: options.cwd || process.cwd(),
-                env: { ...process.env, ...options.env },
-                shell: true,
-                stdio
-            })
+            ? spawn(command + " " + args.join(" "), [], {
+                  cwd: options.cwd || process.cwd(),
+                  env: { ...process.env, ...options.env },
+                  shell: true,
+                  stdio,
+              })
             : spawn(command, args, {
-                cwd: options.cwd || process.cwd(),
-                env: { ...process.env, ...options.env },
-                stdio
-            });
+                  cwd: options.cwd || process.cwd(),
+                  env: { ...process.env, ...options.env },
+                  stdio,
+              });
 
-        proc.stdout?.on('data', (data) => {
+        proc.stdout?.on("data", data => {
             const output = data.toString();
             stdout += output;
             if (options.streamOutput) {
@@ -59,7 +59,7 @@ export function exec(
             }
         });
 
-        proc.stderr?.on('data', (data) => {
+        proc.stderr?.on("data", data => {
             const error = data.toString();
             stderr += error;
             if (options.streamOutput) {
@@ -67,19 +67,19 @@ export function exec(
             }
         });
 
-        proc.on('close', (code) => {
+        proc.on("close", code => {
             resolve({
                 exitCode: code ?? 1,
                 output: stdout,
-                error: stderr
+                error: stderr,
             });
         });
 
-        proc.on('error', (err) => {
+        proc.on("error", err => {
             resolve({
                 exitCode: 1,
                 output: stdout,
-                error: stderr + '\n' + err.message
+                error: stderr + "\n" + err.message,
             });
         });
 
@@ -90,7 +90,7 @@ export function exec(
                 resolve({
                     exitCode: 1,
                     output: stdout,
-                    error: stderr + '\nCommand timed out'
+                    error: stderr + "\nCommand timed out",
                 });
             }, options.timeout);
         }
@@ -105,10 +105,10 @@ export function pnpx(
     args: string[] = [],
     options?: { timeout?: number; streamOutput?: boolean; silent?: boolean }
 ): Promise<ExecResult> {
-    return exec('pnpx', [command, ...args], {
+    return exec("pnpx", [command, ...args], {
         timeout: options?.timeout || 30000, // Default 30 second timeout
         streamOutput: options?.streamOutput,
-        silent: options?.silent
+        silent: options?.silent,
     });
 }
 
@@ -116,8 +116,8 @@ export function pnpx(
  * Check if a command is available in PATH
  */
 export async function commandExists(command: string): Promise<boolean> {
-    const isWindows = process.platform === 'win32';
-    const checkCmd = isWindows ? 'where' : 'which';
+    const isWindows = process.platform === "win32";
+    const checkCmd = isWindows ? "where" : "which";
     const result = await exec(checkCmd, [command]);
     return result.exitCode === 0;
 }

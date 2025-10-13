@@ -1,10 +1,27 @@
 {
+    "name": "bitcraft-nexus",
     "private": true,
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ],
     "scripts": {
-        "dev": "tsx scripts/env-setup.ts && next dev --turbopack",
-        "build": "next build",
-        "start": "next start",
-        "lint": "next lint",
+        "dev": "pnpm --filter web dev",
+        "dev:web": "pnpm --filter web dev",
+        "dev:bot": "pnpm --filter discord-bot dev",
+        "dev:all": "pnpm --parallel --filter web dev & pnpm --parallel --filter discord-bot dev",
+        "build": "pnpm -r build",
+        "build:web": "pnpm --filter web build",
+        "build:bot": "pnpm --filter discord-bot build",
+        "start": "pnpm --filter web start",
+        "start:web": "pnpm --filter web start",
+        "start:bot": "pnpm --filter discord-bot start",
+        "lint": "pnpm -r lint",
+        "lint:web": "pnpm --filter web lint",
+        "lint:bot": "pnpm --filter discord-bot lint",
+        "test": "pnpm -r test",
+        "test:web": "pnpm --filter web test",
+        "test:bot": "pnpm --filter discord-bot test",
         "prepare": "husky",
         "commitlint": "commitlint --edit",
         "env:setup": "tsx scripts/env-setup.ts",
@@ -16,7 +33,15 @@
         "db:migrate": "drizzle-kit migrate",
         "db:push": "drizzle-kit push",
         "db:studio": "drizzle-kit studio",
-        "db:drop": "drizzle-kit drop"
+        "db:drop": "drizzle-kit drop",
+        "clean": "pnpm -r clean",
+        "clean:web": "pnpm --filter web clean",
+        "clean:bot": "pnpm --filter discord-bot clean",
+        "clean:shared": "pnpm --filter @bitcraft/shared clean",
+        "clean:database": "pnpm --filter @bitcraft/database clean",
+        "deploy:web": "pnpm --filter web build && pnpm --filter web start",
+        "deploy:bot": "pnpm --filter discord-bot build && pnpm --filter discord-bot start",
+        "deploy:all": "pnpm -r build && pnpm --parallel --filter web start & pnpm --parallel --filter discord-bot start"
     },
     "dependencies": {
         "@clockworklabs/spacetimedb-sdk": "^1.3.3",

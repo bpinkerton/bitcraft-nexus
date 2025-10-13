@@ -1,0 +1,22 @@
+{
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist",
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["./*"],
+            "@bitcraft/shared": ["../../packages/shared/src"],
+            "@bitcraft/database": ["../../packages/database/src"],
+            "@/spacetime_bindings": ["../../spacetime_bindings"]
+        }
+    },
+    "include": [
+        "app/**/*",
+        "components/**/*",
+        "lib/**/*",
+        "src/**/*",
+        ".next/types/**/*.ts",
+        "../../spacetime_bindings/**/*"
+    ],
+    "exclude": ["node_modules", "dist", ".next"]
+}

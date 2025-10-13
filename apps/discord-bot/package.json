@@ -1,0 +1,29 @@
+{
+    "name": "discord-bot",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "tsx watch src/index.ts",
+        "build": "tsc",
+        "start": "node dist/index.js",
+        "lint": "eslint src --ext .ts",
+        "test": "vitest",
+        "test:watch": "vitest --watch",
+        "test:coverage": "vitest --coverage",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "@bitcraft/shared": "workspace:*",
+        "@bitcraft/database": "workspace:*",
+        "discord.js": "^14.14.1",
+        "drizzle-orm": "^0.44.6",
+        "postgres": "^3.4.7"
+    },
+    "devDependencies": {
+        "@types/node": "^20",
+        "eslint": "^9",
+        "tsx": "^4.20.6",
+        "typescript": "^5",
+        "vitest": "^1.0.0"
+    }
+}

@@ -1,6 +1,35 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+    --color-background: oklch(100% 0 0);
+    --color-foreground: oklch(9% 0 0);
+    --color-card: oklch(100% 0 0);
+    --color-card-foreground: oklch(9% 0 0);
+    --color-popover: oklch(100% 0 0);
+    --color-popover-foreground: oklch(9% 0 0);
+    --color-primary: oklch(17.65% 0 0);
+    --color-primary-foreground: oklch(98.04% 0 0);
+    --color-secondary: oklch(96.1% 0 0);
+    --color-secondary-foreground: oklch(17.65% 0 0);
+    --color-muted: oklch(96.1% 0 0);
+    --color-muted-foreground: oklch(54.66% 0 0);
+    --color-accent: oklch(96.1% 0 0);
+    --color-accent-foreground: oklch(17.65% 0 0);
+    --color-destructive: oklch(62.8% 0.257 29.234);
+    --color-destructive-foreground: oklch(98.04% 0 0);
+    --color-border: oklch(90.59% 0 0);
+    --color-input: oklch(90.59% 0 0);
+    --color-ring: oklch(9% 0 0);
+    --color-chart-1: oklch(68.35% 0.165 35.52);
+    --color-chart-2: oklch(53.49% 0.102 200.08);
+    --color-chart-3: oklch(37.51% 0.082 231.72);
+    --color-chart-4: oklch(77.27% 0.144 91.47);
+    --color-chart-5: oklch(75.8% 0.177 41.16);
+    
+    --radius-lg: 0.5rem;
+    --radius-md: calc(0.5rem - 2px);
+    --radius-sm: calc(0.5rem - 4px);
+}
 
 @layer base {
     :root {
@@ -30,6 +59,7 @@
         --chart-5: 27 87% 67%;
         --radius: 0.5rem;
     }
+    
     .dark {
         --background: 0 0% 3.9%;
         --foreground: 0 0% 98%;
@@ -56,13 +86,14 @@
         --chart-4: 280 65% 60%;
         --chart-5: 340 75% 55%;
     }
-}
-
-@layer base {
+    
     * {
         @apply border-border;
     }
+    
     body {
         @apply bg-background text-foreground;
     }
 }
+
+@plugin "tailwindcss-animate";

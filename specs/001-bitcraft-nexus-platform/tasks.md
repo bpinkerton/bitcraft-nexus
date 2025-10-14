@@ -23,12 +23,12 @@
 
 **Duration Estimate**: 2-3 hours
 
-- [ ] **T001** [P] [SETUP] Initialize Next.js 15 project with App Router and TypeScript 5+ strict mode
+- [x] **T001** [P] [SETUP] Initialize Next.js 15 project with App Router and TypeScript 5+ strict mode
   - Run: `npx create-next-app@latest bitcraft-nexus --typescript --tailwind --app --use-pnpm --import-alias "@/*"`
   - Configure: `tsconfig.json` with strict mode enabled
   - Verify: `pnpm dev` starts successfully
 
-- [ ] **T002** [P] [SETUP] Install core dependencies (Supabase, Drizzle, SpacetimeDB, discord.js)
+- [x] **T002** [P] [SETUP] Install core dependencies (Supabase, Drizzle, SpacetimeDB, discord.js)
   - Add: `@supabase/ssr`, `@supabase/supabase-js`, `drizzle-orm`, `drizzle-kit`
   - Add: `@clockworklabs/spacetimedb-sdk` for game data integration
   - Add: `discord.js` v14+ for bot framework

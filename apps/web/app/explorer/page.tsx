@@ -1,5 +1,6 @@
 "use client";
 
+import { getEnvVar } from "@bitcraft/shared";
 import { useEffect, useState } from "react";
 
 interface SchemaTable {
@@ -46,10 +47,14 @@ export default function SQLExplorerPage() {
 
     useEffect(() => {
         // Load schema and auth token
-        Promise.all([
-            fetch("/api/schema").then(res => res.json()),
-            fetch("/api/auth-token").then(res => res.text()),
-        ])
+        const token = getEnvVar("SPACETIME_AUTH_TOKEN");
+        if (!token) {
+            setStatus("No auth token found");
+            return;
+        }
+
+        fetch("/api/schema")
+            .then(res => res.json())
             .then(([schemaData]) => {
                 setSchema(schemaData);
 

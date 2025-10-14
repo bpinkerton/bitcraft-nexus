@@ -13,9 +13,9 @@
         "clean": "rm -rf dist"
     },
     "dependencies": {
-        "@bitcraft/shared": "workspace:*",
         "@bitcraft/database": "workspace:*",
-        "discord.js": "^14.14.1",
+        "@bitcraft/shared": "workspace:*",
+        "discord.js": "^14.23.2",
         "drizzle-orm": "^0.44.6",
         "postgres": "^3.4.7"
     },

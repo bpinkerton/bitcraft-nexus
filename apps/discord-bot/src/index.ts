@@ -5,46 +5,37 @@
  * It connects to Discord and handles various bot interactions.
  */
 
-import { Client, GatewayIntentBits, Events } from "discord.js";
-import { config } from "./config/client";
-import { logger } from "@bitcraft/shared";
-import { handleCommand } from "./commands";
 
-// Create Discord client
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMembers,
-    ],
+import * as dotenvx from "@dotenvx/dotenvx";
+dotenvx.config({
+    path: "./.env.local"
 });
 
-// Bot ready event
-client.once(Events.ClientReady, readyClient => {
-    logger.info(`Discord bot is ready! Logged in as ${readyClient.user.tag}`);
-});
 
-// Command interaction event
-client.on(Events.InteractionCreate, async interaction => {
-    if (interaction.isChatInputCommand()) {
-        await handleCommand(interaction, client);
-    }
-});
+import { DiscordBot } from "./discord";
+import { getEnvVar, logger } from "@bitcraft/shared";
 
-// Error handling
-client.on("error", error => {
-    logger.error("Discord client error:", error);
-});
 
 process.on("unhandledRejection", error => {
     logger.error("Unhandled promise rejection:", error);
 });
 
+process.on("SIGINT", () => {
+    logger.info("Shutting down Discord bot...");
+    DiscordBot.destroy();
+    process.exit(0);
+});
+
+process.on("SIGTERM", () => {
+    logger.info("Shutting down Discord bot...");
+    DiscordBot.destroy();
+    process.exit(0);
+});
+
 // Login to Discord
 async function startBot() {
     try {
-        await client.login(config.token);
+        await DiscordBot.login(getEnvVar("DISCORD_BOT_TOKEN"));
     } catch (error) {
         logger.error("Failed to start Discord bot:", error);
         process.exit(1);
@@ -52,22 +43,14 @@ async function startBot() {
 }
 
 // Graceful shutdown
-process.on("SIGINT", () => {
-    logger.info("Shutting down Discord bot...");
-    client.destroy();
-    process.exit(0);
-});
 
-process.on("SIGTERM", () => {
-    logger.info("Shutting down Discord bot...");
-    client.destroy();
-    process.exit(0);
-});
 
 // Start the bot
 if (require.main === module) {
+    // If the --push flag is present, push the known commands to the Discord bot
+    if(process.argv.includes("--push")) {
+    }
+    
     startBot();
 }
 
-export { client };
-export default client;

@@ -1,0 +1,48 @@
+{
+    "name": "@bitcraft/shared",
+    "version": "0.1.0",
+    "private": true,
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "require": "./dist/index.js"
+        },
+        "./types": {
+            "types": "./dist/types/index.d.ts",
+            "import": "./dist/types/index.js",
+            "require": "./dist/types/index.js"
+        },
+        "./utils": {
+            "types": "./dist/utils/index.d.ts",
+            "import": "./dist/utils/index.js",
+            "require": "./dist/utils/index.js"
+        },
+        "./config": {
+            "types": "./dist/config/index.d.ts",
+            "import": "./dist/config/index.js",
+            "require": "./dist/config/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch",
+        "lint": "eslint src --ext .ts",
+        "test": "vitest",
+        "test:watch": "vitest --watch",
+        "test:coverage": "vitest --coverage",
+        "clean": "rm -rf dist"
+    },
+    "dependencies": {
+        "clsx": "^2.1.1",
+        "tailwind-merge": "^3.3.0"
+    },
+    "devDependencies": {
+        "@types/node": "^20",
+        "eslint": "^9",
+        "typescript": "^5",
+        "vitest": "^1.0.0"
+    }
+}

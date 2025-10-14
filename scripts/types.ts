@@ -14,7 +14,7 @@ export interface SupabaseCredentials {
 
 export interface BindingsMetadata {
     sha: string;
-    bindingType: 'global' | 'regional';
+    bindingType: "global" | "regional";
     lastUpdated: string;
     source: string;
 }
@@ -26,7 +26,7 @@ export interface GitHubFileInfo {
     size: number;
     url: string;
     download_url: string | null;
-    type: 'file' | 'dir';
+    type: "file" | "dir";
 }
 
 export interface ExecResult {

@@ -2,11 +2,11 @@
  * Utilities for interacting with GitHub API
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-import type { GitHubFileInfo } from '../types';
+import * as fs from "fs";
+import * as path from "path";
+import type { GitHubFileInfo } from "../types";
 
-const GITHUB_API_BASE = 'https://api.github.com';
+const GITHUB_API_BASE = "https://api.github.com";
 const FETCH_TIMEOUT = 10000; // 10 seconds
 
 export interface DownloadProgress {
@@ -18,7 +18,10 @@ export interface DownloadProgress {
 /**
  * Fetch with timeout
  */
-async function fetchWithTimeout(url: string, timeout = FETCH_TIMEOUT): Promise<Response> {
+async function fetchWithTimeout(
+    url: string,
+    timeout = FETCH_TIMEOUT
+): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -28,7 +31,7 @@ async function fetchWithTimeout(url: string, timeout = FETCH_TIMEOUT): Promise<R
         return response;
     } catch (error) {
         clearTimeout(timeoutId);
-        if (error instanceof Error && error.name === 'AbortError') {
+        if (error instanceof Error && error.name === "AbortError") {
             throw new Error(`Request timed out after ${timeout}ms`);
         }
         throw error;
@@ -68,7 +71,9 @@ export async function fetchDirectoryContents(
     const response = await fetchWithTimeout(url);
 
     if (!response.ok) {
-        throw new Error(`Failed to fetch directory contents: ${response.statusText}`);
+        throw new Error(
+            `Failed to fetch directory contents: ${response.statusText}`
+        );
     }
 
     const data = await response.json();
@@ -93,7 +98,7 @@ async function downloadFile(url: string, destPath: string): Promise<void> {
         fs.mkdirSync(dir, { recursive: true });
     }
 
-    fs.writeFileSync(destPath, content, 'utf-8');
+    fs.writeFileSync(destPath, content, "utf-8");
 }
 
 /**
@@ -108,9 +113,9 @@ async function countFiles(
     let count = 0;
 
     for (const item of items) {
-        if (item.type === 'file') {
+        if (item.type === "file") {
             count++;
-        } else if (item.type === 'dir') {
+        } else if (item.type === "dir") {
             count += await countFiles(repo, branch, item.path);
         }
     }
@@ -126,13 +131,19 @@ async function downloadGitHubFolderRecursive(
     branch: string,
     sourcePath: string,
     destPath: string,
-    progress: { current: number; total: number; onProgress?: (downloaded: number, total: number, file: string) => void }
+    progress: {
+        current: number;
+        total: number;
+        onProgress?: (downloaded: number, total: number, file: string) => void;
+    }
 ): Promise<void> {
     const items = await fetchDirectoryContents(repo, branch, sourcePath);
 
     // Separate files and directories for parallel processing
-    const files = items.filter(item => item.type === 'file' && item.download_url);
-    const dirs = items.filter(item => item.type === 'dir');
+    const files = items.filter(
+        item => item.type === "file" && item.download_url
+    );
+    const dirs = items.filter(item => item.type === "dir");
 
     // Create all directories first (synchronously to avoid race conditions)
     for (const dir of dirs) {
@@ -141,7 +152,7 @@ async function downloadGitHubFolderRecursive(
     }
 
     // Download all files in parallel
-    const fileDownloads = files.map(async (file) => {
+    const fileDownloads = files.map(async file => {
         const fileDestPath = path.join(destPath, file.name);
         await downloadFile(file.download_url!, fileDestPath);
         progress.current++;
@@ -151,7 +162,7 @@ async function downloadGitHubFolderRecursive(
     });
 
     // Process all subdirectories in parallel
-    const dirDownloads = dirs.map(async (dir) => {
+    const dirDownloads = dirs.map(async dir => {
         const dirDestPath = path.join(destPath, dir.name);
         await downloadGitHubFolderRecursive(
             repo,
@@ -188,8 +199,13 @@ export async function downloadGitHubFolder(
 
     // Then download with progress tracking
     const progress = { current: 0, total: totalFiles, onProgress };
-    await downloadGitHubFolderRecursive(repo, branch, sourcePath, destPath, progress);
-
+    await downloadGitHubFolderRecursive(
+        repo,
+        branch,
+        sourcePath,
+        destPath,
+        progress
+    );
 }
 
 /**
@@ -210,8 +226,8 @@ export async function fetchFileContent(
 
     const data = await response.json();
 
-    if (data.type !== 'file' || !data.download_url) {
-        throw new Error('Not a file or download URL unavailable');
+    if (data.type !== "file" || !data.download_url) {
+        throw new Error("Not a file or download URL unavailable");
     }
 
     const fileResponse = await fetch(data.download_url);

@@ -10,6 +10,3 @@ export * from "./utils";
 
 // Export all types
 export * from "./types";
-
-// Export configuration utilities
-export * from "./config";

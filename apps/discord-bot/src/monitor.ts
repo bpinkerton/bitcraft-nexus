@@ -104,8 +104,8 @@ class DiscordBotMonitor {
 export const discordBotMonitor = new DiscordBotMonitor();
 
 // Auto-start monitoring in production
-if (process.env.NODE_ENV === 'production') {
-  discordBotMonitor.start();
-}
+//if (process.env.NODE_ENV === 'production') {
+  //discordBotMonitor.start();
+//}
 
 export default discordBotMonitor;

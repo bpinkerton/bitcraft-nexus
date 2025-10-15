@@ -3,13 +3,13 @@
     "compilerOptions": {
         "outDir": "./dist",
         "baseUrl": ".",
+        "declaration": true,
+        "declarationMap": true,
         "paths": {
             "@/*": ["./src/*"],
-            "@bitcraft/shared": ["../../packages/shared/src"],
-            "@bitcraft/database": ["../../packages/database/src"],
-            "@bitcraft/spacetime": ["../../packages/spacetime/src"]
+            "@/spacetime_bindings": ["../../spacetime_bindings"]
         }
     },
-    "include": ["src/**/*"],
+    "include": ["src/**/*", "../../spacetime_bindings/**/*"],
     "exclude": ["node_modules", "dist"]
 }

@@ -11,8 +11,7 @@ dotenvx.config({
     path: "./.env.local"
 });
 
-
-import { DiscordBot } from "./discord";
+import { DiscordBot } from "@/discord";
 import { getEnvVar, logger } from "@bitcraft/shared";
 
 

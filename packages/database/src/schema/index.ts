@@ -10,10 +10,28 @@ import {
     pgTable,
     text,
     timestamp,
-    uuid,
-    boolean,
+    bigint
 } from "drizzle-orm/pg-core";
 
+export const linkedUsers = pgTable("linked_users", {
+    userId: bigint("user_id", { mode: "bigint" }).primaryKey(),
+    discordId: text("discord_id").notNull().unique(),
+    linkedAt: timestamp("linked_at").defaultNow().notNull(),
+})
+
+export const linkCodes = pgTable("link_codes", {
+    discordId: text("discord_id").notNull().primaryKey(),
+    code: text("code").notNull().unique(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    expiresAt: timestamp("expires_at").notNull(),
+})
+
+export type LinkedUser = typeof linkedUsers.$inferSelect;
+export type NewLinkedUser = typeof linkedUsers.$inferInsert;
+export type LinkCode = typeof linkCodes.$inferSelect;
+export type NewLinkCode = typeof linkCodes.$inferInsert;
+
+/*
 // Example tables - replace with your actual schema
 export const users = pgTable("users", {
     id: uuid("id").primaryKey().defaultRandom(),
@@ -58,3 +76,4 @@ export type DiscordUser = typeof discordUsers.$inferSelect;
 export type NewDiscordUser = typeof discordUsers.$inferInsert;
 export type WorkspaceConfig = typeof workspaceConfigs.$inferSelect;
 export type NewWorkspaceConfig = typeof workspaceConfigs.$inferInsert;
+*/

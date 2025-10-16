@@ -20,6 +20,9 @@
         "test:coverage": "vitest --coverage",
         "clean": "rm -rf dist"
     },
+    "dependencies": {
+        "@bitcraft/shared": "workspace:*"
+    },
     "devDependencies": {
         "@types/node": "^20",
         "eslint": "^9",

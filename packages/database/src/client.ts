@@ -38,13 +38,3 @@ export type Db = typeof db;
 
 // Export schema for external use
 export { schema };
-
-// Export individual table types
-export type {
-    User,
-    NewUser,
-    DiscordUser,
-    NewDiscordUser,
-    WorkspaceConfig,
-    NewWorkspaceConfig,
-} from "./schema";

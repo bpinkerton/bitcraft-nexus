@@ -15,6 +15,7 @@
     "dependencies": {
         "@bitcraft/database": "workspace:*",
         "@bitcraft/shared": "workspace:*",
+        "@bitcraft/spacetime": "workspace:*",
         "discord.js": "^14.23.2",
         "drizzle-orm": "^0.44.6",
         "postgres": "^3.4.7"

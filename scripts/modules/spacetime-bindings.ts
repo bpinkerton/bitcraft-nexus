@@ -272,6 +272,7 @@ if (require.main === module) {
                 "Error:",
                 error instanceof Error ? error.message : String(error)
             );
+            console.log(error);
             process.exit(1);
         }
     })();

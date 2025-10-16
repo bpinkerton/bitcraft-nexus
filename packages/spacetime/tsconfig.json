@@ -2,14 +2,15 @@
     "extends": "../../tsconfig.json",
     "compilerOptions": {
         "outDir": "./dist",
-        "baseUrl": ".",
         "declaration": true,
         "declarationMap": true,
+        "baseUrl": ".",
         "paths": {
             "@/*": ["./src/*"],
-            "@/spacetime_bindings": ["../../spacetime_bindings"]
+            "@/spacetime_bindings": ["../../spacetime_bindings"],
+            "@bitcraft/shared": ["../../packages/shared/src"]
         }
     },
-    "include": ["src/**/*", "../../spacetime_bindings/**/*"],
+    "include": ["src/**/*"],
     "exclude": ["node_modules", "dist"]
 }
